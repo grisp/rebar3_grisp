@@ -2,7 +2,8 @@
 {variables, [
     {name, "mygrispapp", "Name of the OTP application"},
     {desc, "A GRiSP application", "Short description of the app"},
-    {dest, "/path/to/SD-card", "Deployment destination"}
+    {dest, "/path/to/SD-card", "Deployment destination"},
+    {otp_release, "19", "Target GRiSP Erlang/OTP version"}
 ]}.
 {template, "app.erl", "{{name}}/src/{{name}}.erl"}.
 {template, "sup.erl", "{{name}}/src/{{name}}_sup.erl"}.
