@@ -7,5 +7,6 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
-    {ok, State1} = rebar3_grisp_prv:init(State),
-    {ok, State1}.
+    lists:foldl(fun(Mod, {ok, S}) -> Mod:init(S) end, {ok, State}, [
+        rebar3_grisp_deploy
+    ]).
