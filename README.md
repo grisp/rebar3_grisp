@@ -36,11 +36,11 @@ $ rebar3 new grispapp name=mygrispproject dest=/path/to/SD-card
 
 The specific variables provided by this plug-in are:
 
-* `name` is the name of the OTP application
-* `dest` is the destination path for deployment. This should point to where
+* **`name`** is the name of the OTP application
+* **`dest`** is the destination path for deployment. This should point to where
   your SD-card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
   is the name of the SD-card partition)
-* `otp_release` is the target Erlang/OTP version used on the GRiSP (defaults to
+* **`otp_release`** is the target Erlang/OTP version used on the GRiSP (defaults to
   `19`)
 
 For a full list of customizable variables, run `rebar3 new help grispapp `.
