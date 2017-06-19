@@ -1,0 +1,17 @@
+{application, {{name}}, [
+    {description, "{{desc}}"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {mod, {{{name}}, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        grisp
+    ]},
+    {env,[]},
+    {modules, []},
+
+    {maintainers, []},
+    {licenses, ["Apache 2.0"]},
+    {links, []}
+]}.
