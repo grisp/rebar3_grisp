@@ -1,0 +1,20 @@
+{application, grisp, [
+    {description, "Rebar plugin for GRiSP"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [
+        kernel,
+        stdlib
+    ]},
+    {env,[]},
+    {modules, []},
+
+    {maintainers, [
+        "Peer Stritzinger",
+        "Adam Lindberg"
+    ]},
+    {licenses, ["Apache 2.0"]},
+    {links, [
+        {"GitHub", "https://github.com/grisp/rebar3_grisp"}
+    ]}
+]}.
