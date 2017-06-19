@@ -1,4 +1,4 @@
-{application, grisp, [
+{application, rebar3_grisp, [
     {description, "Rebar plugin for GRiSP"},
     {vsn, "0.1.0"},
     {registered, []},

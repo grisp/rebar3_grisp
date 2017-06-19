@@ -1,4 +1,4 @@
--module(grisp_prv).
+-module(rebar3_grisp_prv).
 
 % Callbacks
 -export([init/1]).
