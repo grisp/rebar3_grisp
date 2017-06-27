@@ -41,20 +41,21 @@ format_error(Reason) ->
 %--- Internal ------------------------------------------------------------------
 
 check_otp_release(Config) ->
-    case proplists:get_value(otp_release, Config) of
-        undefined ->
+    try
+        OTPRelease = rebar3_grisp_util:get(otp_release, Config, undefined),
+        case {OTPRelease, erlang:system_info(otp_release)} of
+            {Target, Target} -> ok;
+            {Target, Current} ->
+                rebar_api:warn(
+                    "Current Erlang version (~p) does not match target"
+                    "Erlang version (~p). It is not guaranteed that the"
+                    "deployed release will work!", [Current, Target]
+                )
+        end
+    catch
+        {key_not_found, [otp_release], _} ->
             rebar_api:abort(
                 "GRiSP OTP release in rebar.config not configured:"
                 "~n~n{grisp, [{otp_release, \"<VERSION>\"}]}", []
-            );
-        OTPRelease ->
-            case {OTPRelease, erlang:system_info(otp_release)} of
-                {Target, Target} -> ok;
-                {Target, Current} ->
-                    rebar_api:warn(
-                        "Current Erlang version (~p) does not match target"
-                        "Erlang version (~p). It is not guaranteed that the"
-                        "deployed release will work!", [Current, Target]
-                    )
-                end
+            )
     end.
