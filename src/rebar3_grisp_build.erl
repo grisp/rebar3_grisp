@@ -36,16 +36,19 @@ do(State) ->
     Config = rebar_state:get(State, grisp, []),
     URL = "https://github.com/grisp/otp",
     Platform = "grisp_base",
-    Root = "_grisp/build",
+    {ok, CWD} = file:get_cwd(),
+    Root = filename:join(CWD, "_grisp"),
     Version = "19.3.6",
-    OTPRoot = filename:join(Root, Version),
+    OTPRoot = filename:join([Root, "otp", Version]),
+    BuildRoot = filename:join(OTPRoot, "build"),
+    InstallRoot = filename:join(OTPRoot, "install"),
     info("Checking out Erlang/OTP ~s", [Version]),
-    ensure_clone(URL, OTPRoot, Version, Opts),
+    ensure_clone(URL, BuildRoot, Version, Opts),
     Apps = apps(State),
     info("Preparing GRiSP code"),
-    copy_code(Apps, Platform, OTPRoot),
+    copy_code(Apps, Platform, BuildRoot),
     info("Building"),
-    build(Config, OTPRoot),
+    build(Config, BuildRoot, InstallRoot),
     info("Done"),
     {ok, State}.
 
@@ -142,10 +145,10 @@ patch_otp(OTPRoot, Drivers) ->
     sh("git apply otp.patch", [{cd, OTPRoot}]),
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
-build(Config, OTPRoot) ->
+build(Config, BuildRoot, InstallRoot) ->
     TcRoot = rebar3_grisp_util:get([toolchain, root], Config),
     PATH = os:getenv("PATH"),
-    Opts = [{cd, OTPRoot}, {env, [
+    Opts = [{cd, BuildRoot}, {env, [
         {"GRISP_TC_ROOT", TcRoot},
         {"PATH", TcRoot ++ "/bin:" ++ PATH}
     ]}],
@@ -153,9 +156,14 @@ build(Config, OTPRoot) ->
     console("* Running autoconf..."),
     sh("./otp_build autoconf", Opts),
     console("* Running configure...  (this may take a while)"),
-    sh("./otp_build configure --xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf --disable-threads --prefix=/otp", Opts),
+    sh("./otp_build configure --xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf --disable-threads --prefix=/", Opts),
     console("* Building...  (this may take a while)"),
-    sh("./otp_build boot -a", Opts).
+    sh("./otp_build boot -a", Opts),
+    console("* Installing..."),
+    sh("make install DESTDIR=\"" ++ InstallRoot ++ "\"", Opts),
+    sh("mv lib lib.old", [{cd, InstallRoot}]),
+    sh("mv lib.old/erlang/* .", [{cd, InstallRoot}]),
+    sh("rm -rf lib.old", [{cd, InstallRoot}]).
 
 info(Msg) -> info(Msg, []).
 info(Msg, Args) -> rebar_api:info(Msg, Args).
