@@ -60,10 +60,10 @@ format_error(Reason) ->
 
 ensure_clone(URL, Dir, Version, Opts) ->
     Branch = "grisp/OTP-" ++ Version,
-    ok = filelib:ensure_dir(Dir),
+    ok = filelib:ensure_dir(filename:join(Dir, ".")),
     case file:read_file_info(Dir ++ "/.git") of
         {error, enoent} ->
-            console(" * Cloning...  (this may take a while)"),
+            console("* Cloning...  (this may take a while)"),
             sh("git clone " ++ URL ++ " " ++ Dir);
         {ok, #file_info{type = directory}} ->
             console("* Using existing checkout"),
@@ -148,22 +148,39 @@ patch_otp(OTPRoot, Drivers) ->
 build(Config, BuildRoot, InstallRoot) ->
     TcRoot = rebar3_grisp_util:get([toolchain, root], Config),
     PATH = os:getenv("PATH"),
-    Opts = [{cd, BuildRoot}, {env, [
+    Opts = [{env, [
         {"GRISP_TC_ROOT", TcRoot},
         {"PATH", TcRoot ++ "/bin:" ++ PATH}
     ]}],
-    rebar_api:debug("~p", [Opts]),
+    BuildOpts = [{cd, BuildRoot}|Opts],
+    InstallOpts = [{cd, InstallRoot}|Opts],
+    rebar_api:debug("~p", [BuildOpts]),
     console("* Running autoconf..."),
-    sh("./otp_build autoconf", Opts),
+    sh("./otp_build autoconf", BuildOpts),
     console("* Running configure...  (this may take a while)"),
-    sh("./otp_build configure --xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf --disable-threads --prefix=/", Opts),
+    sh(
+        "./otp_build configure "
+        "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf "
+        "--disable-threads "
+        "--prefix=/",
+        BuildOpts
+    ),
     console("* Building...  (this may take a while)"),
-    sh("./otp_build boot -a", Opts),
+    sh("./otp_build boot -a", BuildOpts),
     console("* Installing..."),
-    sh("make install DESTDIR=\"" ++ InstallRoot ++ "\"", Opts),
-    sh("mv lib lib.old", [{cd, InstallRoot}]),
-    sh("mv lib.old/erlang/* .", [{cd, InstallRoot}]),
-    sh("rm -rf lib.old", [{cd, InstallRoot}]).
+    sh("rm -rf " ++ InstallRoot ++ "/*", InstallOpts),
+    sh("make install DESTDIR=\"" ++ InstallRoot ++ "\"", BuildOpts),
+    sh("mv lib lib.old", InstallOpts),
+    sh("mv lib.old/erlang/* .", InstallOpts),
+    sh("rm -rf lib.old", InstallOpts),
+    [Beam] = filelib:wildcard(filename:join(InstallRoot, "erts-*/bin/beam")),
+    sh(
+        "arm-rtems4.12-objcopy "
+        "-O binary "
+        ++ Beam ++ " "
+        ++ Beam ++ ".bin",
+        InstallOpts
+    ).
 
 info(Msg) -> info(Msg, []).
 info(Msg, Args) -> rebar_api:info(Msg, Args).
