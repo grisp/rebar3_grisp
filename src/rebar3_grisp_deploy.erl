@@ -14,7 +14,7 @@ init(State) ->
             {name, deploy},
             {module, ?MODULE},
             {bare, true},
-            {deps, [{default, release}]},
+            {deps, [{default, app_discovery}]},
             {example, "rebar3 grisp deploy"},
             {opts, [
                 {dest, $d, "dest", string, "destination path"}
@@ -32,7 +32,20 @@ init(State) ->
 do(State) ->
     Config = rebar_state:get(State, grisp, []),
     check_otp_release(Config),
-    {ok, State}.
+    Version = "19.3.6",
+    InstallRoot = rebar3_grisp_util:otp_install_root(State, Version),
+    State2 = rebar_state:set(State, relx, [
+        {include_erts, InstallRoot},
+        {system_libs, InstallRoot},
+        {extended_start_script, false},
+        {dev_mode, false}
+        |rebar_state:get(State, relx, [])
+    ]),
+    {ok, State3} = rebar_prv_do:do_tasks(
+        [{"release", []}],
+        rebar_state:namespace(State2, default)
+    ),
+    {ok, State3}.
 
 -spec format_error(any()) ->  iolist().
 format_error(Reason) ->
