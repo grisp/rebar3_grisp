@@ -95,7 +95,6 @@ copy_code(Apps, Platform, OTPRoot) ->
         [],
          Apps
     ),
-    console("* Patching OTP..."),
     patch_otp(OTPRoot, Drivers).
 
 copy_app_code(App, Platform, OTPRoot, Drivers) ->
@@ -147,7 +146,13 @@ patch_otp(OTPRoot, Drivers) ->
     ],
     Patch = bbmustache:compile(Template, Context, [{key_type, atom}]),
     ok = file:write_file(filename:join(OTPRoot, "otp.patch"), Patch),
-    sh("git apply otp.patch", [{cd, OTPRoot}]),
+    case sh("git apply otp.patch --reverse --check", [{cd, OTPRoot}, return_on_error]) of
+        {ok, _} ->
+            console("* Patching OTP... (skipped, already patched)");
+        {error, {1, _}} ->
+            console("* Patching OTP..."),
+            sh("git apply otp.patch", [{cd, OTPRoot}])
+    end,
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
 build(Config, BuildRoot, InstallRoot) ->
@@ -196,5 +201,4 @@ console(Msg, Args) -> rebar_api:console(Msg, Args).
 
 sh(Command) -> sh(Command, []).
 sh(Command, Args) ->
-    {ok, Output} = rebar_utils:sh(Command, [abort_on_error] ++ Args),
-    Output.
+    rebar_utils:sh(Command, Args ++ [abort_on_error]).
