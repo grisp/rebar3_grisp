@@ -165,6 +165,7 @@ build(Config, BuildRoot, InstallRoot) ->
     console("* Building...  (this may take a while)"),
     sh("./otp_build boot -a", BuildOpts),
     console("* Installing..."),
+    ok = filelib:ensure_dir(filename:join(InstallRoot, ".")),
     sh("rm -rf " ++ InstallRoot ++ "/*", InstallOpts),
     sh("make install DESTDIR=\"" ++ InstallRoot ++ "\"", BuildOpts),
     sh("mv lib lib.old", InstallOpts),
