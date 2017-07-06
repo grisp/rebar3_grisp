@@ -67,10 +67,10 @@ ensure_clone(URL, Dir, Version, Opts) ->
             ok
     end,
     sh("git checkout " ++ Branch, [{cd, Dir}]),
-    sh("git reset --hard", [{cd, Dir}]),
     case rebar3_grisp_util:get(clean, Opts, false) of
         true ->
             console("* Cleaning..."),
+            sh("git reset --hard", [{cd, Dir}]),
             sh("git clean -fXd", [{cd, Dir}]),
             sh("git clean -fxd", [{cd, Dir}]);
         false ->
