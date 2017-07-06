@@ -19,7 +19,12 @@ init(State) ->
             {deps, [{default, install_deps}]},
             {example, "rebar3 grisp build"},
             {opts, [
-                {clean, $c, "clean", boolean, false}
+                {clean, $c, "clean", {boolean, false},
+                    "Completely clean Git repository before building"
+                },
+                {configure, $g, "configure", {boolean, true},
+                    "Run autoconf & configure"
+                }
             ]},
             {profiles, [default]},
             {short_desc, "Build a custom Erlang/OTP system for GRiSP"},
@@ -45,7 +50,7 @@ do(State) ->
     info("Preparing GRiSP code"),
     copy_code(Apps, Platform, BuildRoot),
     info("Building"),
-    build(Config, BuildRoot, InstallRoot),
+    build(Config, BuildRoot, InstallRoot, Opts),
     info("Done"),
     {ok, State}.
 
@@ -155,26 +160,31 @@ patch_otp(OTPRoot, Drivers) ->
     end,
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
-build(Config, BuildRoot, InstallRoot) ->
+build(Config, BuildRoot, InstallRoot, Opts) ->
     TcRoot = rebar3_grisp_util:get([toolchain, root], Config),
     PATH = os:getenv("PATH"),
-    Opts = [{env, [
+    AllOpts = [{env, [
         {"GRISP_TC_ROOT", TcRoot},
         {"PATH", TcRoot ++ "/bin:" ++ PATH}
     ]}],
-    BuildOpts = [{cd, BuildRoot}|Opts],
-    InstallOpts = [{cd, InstallRoot}|Opts],
+    BuildOpts = [{cd, BuildRoot}|AllOpts],
+    InstallOpts = [{cd, InstallRoot}|AllOpts],
     rebar_api:debug("~p", [BuildOpts]),
-    console("* Running autoconf..."),
-    sh("./otp_build autoconf", BuildOpts),
-    console("* Running configure...  (this may take a while)"),
-    sh(
-        "./otp_build configure "
-        "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf "
-        "--disable-threads "
-        "--prefix=/",
-        BuildOpts
-    ),
+    case rebar3_grisp_util:get(configure, Opts) of
+        true ->
+            console("* Running autoconf..."),
+            sh("./otp_build autoconf", BuildOpts),
+            console("* Running configure...  (this may take a while)"),
+            sh(
+                "./otp_build configure "
+                "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf "
+                "--disable-threads "
+                "--prefix=/",
+                BuildOpts
+            );
+        false ->
+            ok
+    end,
     console("* Building...  (this may take a while)"),
     sh("./otp_build boot -a", BuildOpts),
     console("* Installing..."),
