@@ -105,11 +105,19 @@ copy_app_code(App, Platform, OTPRoot, Drivers) ->
 
 copy_sys(Source, OTPRoot) ->
     copy_files(
+        {Source, "sys/*.h"},
+        {OTPRoot, "erts/emulator/sys/unix"}
+    ),
+    copy_files(
         {Source, "sys/*.c"},
         {OTPRoot, "erts/emulator/sys/unix"}
     ).
 
 copy_drivers(Source, OTPRoot) ->
+    copy_files(
+        {Source, "drivers/*.h"},
+        {OTPRoot, "erts/emulator/drivers/unix"}
+    ),
     copy_files(
         {Source, "drivers/*.c"},
         {OTPRoot, "erts/emulator/drivers/unix"}
