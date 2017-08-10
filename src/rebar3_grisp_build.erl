@@ -7,6 +7,8 @@
 
 -include_lib("kernel/include/file.hrl").
 
+-import(rebar3_grisp_util, [sh/1, sh/2, info/1, info/2, console/1, console/2]).
+
 %--- Callbacks -----------------------------------------------------------------
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
@@ -202,13 +204,3 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
         ++ Beam ++ ".bin",
         InstallOpts
     ).
-
-info(Msg) -> info(Msg, []).
-info(Msg, Args) -> rebar_api:info(Msg, Args).
-
-console(Msg) -> console(Msg, []).
-console(Msg, Args) -> rebar_api:console(Msg, Args).
-
-sh(Command) -> sh(Command, []).
-sh(Command, Args) ->
-    rebar_utils:sh(Command, Args ++ [abort_on_error]).
