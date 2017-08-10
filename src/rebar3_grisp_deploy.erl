@@ -49,6 +49,9 @@ do(State) ->
         Value     -> Value
     end,
     info("Deploying ~s-~s to ~s", [Name, Version, Dest]),
+    % TODO: Resolve ERTS version
+    ERTSVsn = "8.3.5",
+    copy_files(State3, Name, Version, ERTSVsn, Dest, Force),
     copy_release(State3, Name, Version, Dest, Force),
     {ok, State3}.
 
@@ -96,21 +99,61 @@ make_release(State, Name, Version, ErlangVersion) ->
     ),
     rebar_state:namespace(State3, grisp).
 
-copy_release(State, Name, Version, Dest, Force) ->
+copy_files(State, Name, Version, ERTSVsn, Dest, Force) ->
+    % TODO: Copy all files, not just grisp.ini
+    console("* Copying files..."),
+    Context = [{release_name, Name}, {release_version, Version}, {erts_vsn, ERTSVsn}],
+    Content = load_file(State, "grisp/grisp_base/files/grisp.ini", Context),
+    force_execute(filename:join(Dest, "grisp.ini"), Force,
+        fun(_) -> ok end,
+        fun(F) -> ok = file:write_file(F, Content) end
+    ).
+
+copy_release(State, Name, _Version, Dest, Force) ->
     Source = filename:join([rebar_dir:base_dir(State), "rel", Name]),
     Target = filename:join(Dest, Name),
-    case {filelib:is_file(Target), Force} of
-        {true, true} ->
-            console("* Removing old release..."),
-            sh("rm -rf " ++ Target);
-        {true, _} ->
-            abort("Destination ~s already exists (use --force to overwrite)", [Target]);
+    force_execute(Target, Force,
+        fun(F) -> sh("rm -rf " ++ F) end,
+        fun(F) ->
+            case filelib:ensure_dir(F) of
+                ok    -> ok;
+                Error -> abort("Could not create target directory: ~p", [Error])
+            end,
+            console("* Copying release..."),
+            sh("cp -R " ++ Source ++ " " ++ F)
+        end
+    ).
+
+load_file(State, Filename, Context) ->
+    TemplateName = Filename ++ ".mustache",
+    {[Grisp], _Other} = lists:splitwith(
+        fun(A) -> rebar_app_info:name(A) == <<"grisp">> end,
+        rebar_state:all_deps(State)
+    ),
+    Dirs = [
+        rebar_state:dir(State),
+        rebar_app_info:dir(Grisp)
+    ],
+    Path = find_file(TemplateName, Dirs),
+    Template = bbmustache:parse_file(Path),
+    bbmustache:compile(Template, Context, [{key_type, atom}]).
+
+find_file(Filename, []) ->
+    abort("File not found: ~p", [Filename]);
+find_file(Filename, [Path|Paths]) ->
+    File = filename:join(Path, Filename),
+    case filelib:is_regular(File) of
+        true  -> File;
+        false -> find_file(Filename, Paths)
+    end.
+
+force_execute(File, Force, ExistsFun, Fun) ->
+    case {filelib:is_file(File), Force} of
+        {true, true}  ->
+            ExistsFun(File);
+        {true, false} ->
+            abort("Destination ~s already exists (use --force to overwrite)", [File]);
         _ ->
             ok
     end,
-    case filelib:ensure_dir(Target) of
-        ok    -> ok;
-        Error -> abort("Could not create target directory: ~p", [Error])
-    end,
-    console("* Copying release..."),
-    sh("cp -R " ++ Source ++ " " ++ Target).
+    Fun(File).
