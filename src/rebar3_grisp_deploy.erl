@@ -5,7 +5,15 @@
 -export([do/1]).
 -export([format_error/1]).
 
--import(rebar3_grisp_util, [info/2, console/1, console/2, abort/1, abort/2, sh/1]).
+-import(rebar3_grisp_util, [
+    info/2,
+    console/1,
+    console/2,
+    abort/1,
+    abort/2,
+    sh/1,
+    set/3
+]).
 
 %--- Callbacks -----------------------------------------------------------------
 
@@ -22,7 +30,7 @@ init(State) ->
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
                 {relvsn, $v, "relvsn", string, "Specify the version of the release"},
                 {destination, $d, "destination", string, "Path to put deployed release in"},
-                {force, $f, "force", {boolean, false}, "Delete existing release before deploying"}
+                {force, $f, "force", {boolean, false}, "Replace existing files"}
             ]},
             {profiles, [grisp]},
             {short_desc, "Deploy a GRiSP release to a destination"},
@@ -39,20 +47,22 @@ do(State) ->
     info("~p", [Args]),
     Config = rebar_state:get(State, grisp, []),
     check_otp_release(Config),
-    Name = proplists:get_value(relname, Args),
-    Version = proplists:get_value(relvsn, Args),
+    RelName = proplists:get_value(relname, Args),
+    RelVsn = proplists:get_value(relvsn, Args),
     ErlangVersion = "19.3.6",
-    State3 = make_release(State, Name, Version, ErlangVersion),
+    State3 = make_release(State, RelName, RelVsn, ErlangVersion),
     Force = proplists:get_value(force, Args),
     Dest = case proplists:get_value(destination, Args) of
         undefined -> rebar3_grisp_util:get([deploy, destination], Config);
         Value     -> Value
     end,
-    info("Deploying ~s-~s to ~s", [Name, Version, Dest]),
-    % TODO: Resolve ERTS version
+    info("Deploying ~s-~s to ~s", [RelName, RelVsn, Dest]),
+    % FIXME: Resolve ERTS version
     ERTSVsn = "8.3.5",
-    copy_files(State3, Name, Version, ERTSVsn, Dest, Force),
-    copy_release(State3, Name, Version, Dest, Force),
+    % FIXME: Resolve platform
+    Platform = "grisp_base",
+    copy_files(State3, RelName, RelVsn, Platform, ERTSVsn, Dest, Force),
+    copy_release(State3, RelName, RelVsn, Dest, Force),
     {ok, State3}.
 
 -spec format_error(any()) ->  iolist().
@@ -74,7 +84,7 @@ check_otp_release(Config) ->
                 )
         end
     catch
-        {key_not_found, [otp_release], _} ->
+        error:{key_not_found, [otp_release], _} ->
             abort(
                 "GRiSP OTP release in rebar.config not configured:"
                 "~n~n{grisp, [{otp_release, \"<VERSION>\"}]}"
@@ -99,61 +109,100 @@ make_release(State, Name, Version, ErlangVersion) ->
     ),
     rebar_state:namespace(State3, grisp).
 
-copy_files(State, Name, Version, ERTSVsn, Dest, Force) ->
-    % TODO: Copy all files, not just grisp.ini
+copy_files(State, RelName, RelVsn, Platform, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
-    Context = [{release_name, Name}, {release_version, Version}, {erts_vsn, ERTSVsn}],
-    Content = load_file(State, "grisp/grisp_base/files/grisp.ini", Context),
-    force_execute(filename:join(Dest, "grisp.ini"), Force,
-        fun(_) -> ok end,
-        fun(F) -> ok = file:write_file(F, Content) end
+    {[Grisp], _} = rebar3_grisp_util:grisp_app(rebar_state:all_deps(State)),
+    [GrispFiles, ProjectFiles] = lists:map(
+        fun(Dir) -> grisp_files(Dir, Platform) end,
+        [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
+    ),
+    Tree = maps:merge(GrispFiles, ProjectFiles),
+    Context = [
+        {release_name, RelName},
+        {release_version, RelVsn},
+        {erts_vsn, ERTSVsn}
+    ],
+    maps:map(
+        fun(Target, Source) ->
+            write_file(Dest, Target, Source, Force, Context)
+        end,
+        Tree
     ).
 
-copy_release(State, Name, _Version, Dest, Force) ->
-    Source = filename:join([rebar_dir:base_dir(State), "rel", Name]),
-    Target = filename:join(Dest, Name),
-    force_execute(Target, Force,
-        fun(F) -> sh("rm -rf " ++ F) end,
+grisp_files(Dir, Platform) ->
+    Path = filename:join([Dir, "grisp", Platform, "files"]),
+    resolve_files(find_files(Path), Path).
+
+write_file(Dest, Target, Source, Force, Context) ->
+    Path = filename:join(Dest, Target),
+    rebar_api:debug("Creating ~p from ~p", [Path, Source]),
+    Content = load_file(Source, Context),
+    force_execute(Path, Force,
         fun(F) ->
-            case filelib:ensure_dir(F) of
-                ok    -> ok;
-                Error -> abort("Could not create target directory: ~p", [Error])
-            end,
-            console("* Copying release..."),
-            sh("cp -R " ++ Source ++ " " ++ F)
+            ensure_dir(F),
+            ok = file:write_file(F, Content)
         end
     ).
 
-load_file(State, Filename, Context) ->
-    TemplateName = Filename ++ ".mustache",
-    {[Grisp], _Other} = lists:splitwith(
-        fun(A) -> rebar_app_info:name(A) == <<"grisp">> end,
-        rebar_state:all_deps(State)
-    ),
-    Dirs = [
-        rebar_state:dir(State),
-        rebar_app_info:dir(Grisp)
-    ],
-    Path = find_file(TemplateName, Dirs),
-    Template = bbmustache:parse_file(Path),
-    bbmustache:compile(Template, Context, [{key_type, atom}]).
+find_files(Dir) ->
+    [F || F <- filelib:wildcard(Dir ++ "/**"), filelib:is_regular(F)].
 
-find_file(Filename, []) ->
-    abort("File not found: ~p", [Filename]);
-find_file(Filename, [Path|Paths]) ->
-    File = filename:join(Path, Filename),
-    case filelib:is_regular(File) of
-        true  -> File;
-        false -> find_file(Filename, Paths)
+resolve_files(Files, Root) -> resolve_files(Files, Root, #{}).
+
+resolve_files([File|Files], Root, Resolved) ->
+    Relative = prefix(File, Root ++ "/"),
+    Name = filename:rootname(Relative, ".mustache"),
+    resolve_files(Files, Root, maps:put(
+        Name,
+        resolve_file(Root, Relative, Name, maps:find(Name, Resolved)),
+        Resolved
+    ));
+resolve_files([], _Root, Resolved) ->
+    Resolved.
+
+prefix(String, Prefix) ->
+    case lists:split(length(Prefix), String) of
+        {Prefix, Rest} -> Rest;
+        _              -> String
     end.
 
-force_execute(File, Force, ExistsFun, Fun) ->
+resolve_file(Root, Source, Source, error) ->
+    filename:join(Root, Source);
+resolve_file(Root, Source, _Target, _) ->
+    {template, filename:join(Root, Source)}.
+
+load_file({template, Source}, Context) ->
+    Parsed = bbmustache:parse_file(Source),
+    bbmustache:compile(Parsed, Context, [{key_type, atom}]);
+load_file(Source, _Context) ->
+    {ok, Binary} = file:read_file(Source),
+    Binary.
+
+copy_release(State, Name, _Version, Dest, Force) ->
+    console("* Copying release..."),
+    Source = filename:join([rebar_dir:base_dir(State), "rel", Name]),
+    Target = filename:join(Dest, Name),
+    Command = case Force of
+        true  -> "cp -Rf";
+        false -> "cp -R"
+    end,
+    ensure_dir(Target),
+    sh(string:join([Command, Source ++ "/", Target], " ")).
+
+force_execute(File, Force, Fun) ->
     case {filelib:is_file(File), Force} of
-        {true, true}  ->
-            ExistsFun(File);
         {true, false} ->
-            abort("Destination ~s already exists (use --force to overwrite)", [File]);
+            abort(
+                "Destination ~s already exists (use --force to overwrite)",
+                [File]
+            );
         _ ->
             ok
     end,
     Fun(File).
+
+ensure_dir(File) ->
+    case filelib:ensure_dir(File) of
+        ok    -> ok;
+        Error -> abort("Could not create target directory: ~p", [Error])
+    end.

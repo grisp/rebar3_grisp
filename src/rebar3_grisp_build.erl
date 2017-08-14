@@ -87,10 +87,7 @@ ensure_clone(URL, Dir, Version, Opts) ->
 
 apps(State) ->
     Apps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
-    {Grisp, Other} = lists:splitwith(
-        fun(A) -> rebar_app_info:name(A) == <<"grisp">> end,
-        Apps
-    ),
+    {Grisp, Other} = reabr3_grisp_util:grisp_app(Apps),
     Other ++ Grisp.
 
 copy_code(Apps, Platform, OTPRoot) ->
