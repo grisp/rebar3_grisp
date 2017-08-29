@@ -30,12 +30,16 @@ init(State) ->
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
                 {relvsn, $v, "relvsn", string, "Specify the version of the release"},
                 {destination, $d, "destination", string, "Path to put deployed release in"},
-                {force, $f, "force", {boolean, false}, "Replace existing files"}
+                {force, $f, "force", {boolean, false}, "Replace existing files"},
+                {pre_script, undefined, "pre-script", string, "Shell script to run before deploying begins"},
+                {post_script, undefined, "post-script", string, "Shell script to run after deploying has finished"}
             ]},
             {profiles, [grisp]},
             {short_desc, "Deploy a GRiSP release to a destination"},
             {desc,
 "Deploys a GRiSP application.
+
+The command requires the release name and version to be provided.
 "
             }
     ]),
@@ -52,17 +56,16 @@ do(State) ->
     ErlangVersion = "19.3.6",
     State3 = make_release(State, RelName, RelVsn, ErlangVersion),
     Force = proplists:get_value(force, Args),
-    Dest = case proplists:get_value(destination, Args) of
-        undefined -> rebar3_grisp_util:get([deploy, destination], Config);
-        Value     -> Value
-    end,
+    Dest = get_option(destination, [deploy, destination], State),
     info("Deploying ~s-~s to ~s", [RelName, RelVsn, Dest]),
+    run_script(pre_script, State),
     % FIXME: Resolve ERTS version
     ERTSVsn = "8.3.5",
     % FIXME: Resolve platform
     Platform = "grisp_base",
     copy_files(State3, RelName, RelVsn, Platform, ERTSVsn, Dest, Force),
     copy_release(State3, RelName, RelVsn, Dest, Force),
+    run_script(post_script, State),
     {ok, State3}.
 
 -spec format_error(any()) ->  iolist().
@@ -108,6 +111,18 @@ make_release(State, Name, Version, ErlangVersion) ->
         rebar_state:namespace(State2, default)
     ),
     rebar_state:namespace(State3, grisp).
+
+run_script(Name, State) ->
+    case get_option(Name, [deploy, Name], State, undefined) of
+        undefined -> ok;
+        Script ->
+            console("* Running ~p", [Name]),
+            {ok, Output} = sh(Script),
+            case trim(Output) of
+                ""      -> ok;
+                Trimmed -> console(Trimmed)
+            end
+    end.
 
 copy_files(State, RelName, RelVsn, Platform, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
@@ -206,3 +221,24 @@ ensure_dir(File) ->
         ok    -> ok;
         Error -> abort("Could not create target directory: ~p", [Error])
     end.
+
+get_option(Arg, ConfigKey, State) ->
+    get_arg_option(Arg, State, fun(Config) ->
+        rebar3_grisp_util:get(ConfigKey, Config)
+    end).
+
+get_option(Arg, ConfigKey, State, Default) ->
+    get_arg_option(Arg, State, fun(Config) ->
+        rebar3_grisp_util:get(ConfigKey, Config, Default)
+    end).
+
+get_arg_option(Arg, State, Fun) ->
+    {Args, _} = rebar_state:command_parsed_args(State),
+    Config = rebar_state:get(State, grisp, []),
+    case proplists:get_value(Arg, Args) of
+        undefined -> Fun(Config);
+        Value     -> Value
+    end.
+
+trim(String) ->
+    re:replace(String, "(^[\s\n\t]+|[\s\n\t]+$)", "", [global, {return, list}]).
