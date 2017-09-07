@@ -60,7 +60,7 @@ otp_install_root(State, Version) ->
     filename:join([root(State), "otp", Version, "install"]).
 
 grisp_app(Apps) ->
-    lists:splitwith(
+    lists:partition(
         fun(A) -> rebar_app_info:name(A) == <<"grisp">> end,
         Apps
     ).
