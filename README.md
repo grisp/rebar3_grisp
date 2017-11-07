@@ -2,7 +2,21 @@
 
 Rebar plug-in for the GRiSP project.
 
-## Use
+## Installation
+
+### Globally
+
+To install the plug-in globally, add the plug-in to your plug-ins list in
+`~/.config/rebar3/rebar.config`:
+
+```erlang
+{plugins, [
+    rebar3_hex,
+    rebar3_grisp
+]}.
+```
+
+### For an Existing Project
 
 Add the plug-in to your rebar config:
 
@@ -10,7 +24,7 @@ Add the plug-in to your rebar config:
 {plugins, [rebar3_grisp]}.
 ```
 
-Then just call your plug-in directly in an existing application:
+Then just call your plug-in directly in the root of the existing application:
 
 ```
 $ rebar3 grisp
@@ -23,7 +37,7 @@ $ rebar3 grisp
 
 Prerequisites:
 
-* [Install Plug-In Globally](#install-plug-in-globally)
+* [Install Plug-In Globally](#globally)
 
 To create a new GRiSP project:
 
@@ -72,17 +86,5 @@ Run `rebar3 help grisp deploy` for information on all arguments.
         % Shell script to run after deploying has finished
         {post_script, "unmount /path/to/destination"}
     ]}
-]}.
-```
-
-## Install Plug-In Globally
-
-To install the plug-in globally, add the plug-in to your plug-ins list in
-`~/.config/rebar3/rebar.config`:
-
-```erlang
-{plugins, [
-    rebar3_hex,
-    rebar3_grisp
 ]}.
 ```
