@@ -184,7 +184,7 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
         false ->
             ok
     end,
-    console("* Building...  (this may take a while)"),
+    console("* Compiling...  (this may take a while)"),
     sh("./otp_build boot -a", BuildOpts),
     console("* Installing..."),
     ok = filelib:ensure_dir(filename:join(InstallRoot, ".")),
