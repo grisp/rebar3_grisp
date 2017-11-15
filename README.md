@@ -54,7 +54,35 @@ The specific variables provided by this plug-in are:
 * **`otp_release`** is the target Erlang/OTP version used on the GRiSP (defaults
   to `19`)
 
-For a full list of customizable variables, run `rebar3 new help grispapp `.
+For a full list of customizable variables, run `rebar3 new help grispapp`.
+
+## Compile the project
+
+```rebar3 compile```
+
+Make sure you do that with Erlang 19.3.6. If you compiled rebar3 yourself with a more recent version of Erlang it will give errors, you will need to recompile rebar3 as well in that case.
+
+For further information have a look at the [GRiSP Wiki](https://github.com/grisp/grisp/wiki)
+
+## Build OTP for GRiSP
+
+Add the path to your build toolchain to the `rebar.config` file so the section looks something like this:
+
+```erlang
+{grisp, [
+    {otp_release, "19"},
+    
+    {toolchain, [{root,"/home/USERNAME/GRiSP/grisp-software/rtems-install/rtems-4.12"}]},
+    
+    {deploy, [
+        {destination, "/run/media/MYGRISPSD/"}
+    ]}
+]}.
+```
+
+Then execute `rebar3 grisp build`. This will take some time, because Erlang/OTP is cross-compiled for the GRiSP board.
+
+You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you wrote new drivers in C. If you need to build OTP for a second time you can speed it up by using `rebar3 grisp build --configure false`.
 
 ## Deploy an Application
 
