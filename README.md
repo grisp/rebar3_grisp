@@ -16,6 +16,9 @@ To install the plug-in globally, add the plug-in to your plug-ins list in
 ]}.
 ```
 
+CAVEAT: global rebar plugins are  kind of hard to upgrade to a newer version.
+The way *not* to do it is `rebar plugins upgrade rebar3_grisp`  what worked for us is removing it from the `.cache` dir `rm -rf  ~/.cache/rebar3/plugins/rebar3_grisp/` and keeping it in the config.  The next call to `rebar3 new grispapp` it gets reinstalled in the latest version configure in `~/.config/rebar3/rebar.config` .
+
 ### For an Existing Project
 
 Add the plug-in to your rebar config:
