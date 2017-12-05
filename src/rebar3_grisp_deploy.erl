@@ -126,7 +126,8 @@ run_script(Name, State) ->
 
 copy_files(State, RelName, RelVsn, Platform, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
-    {[Grisp], _} = rebar3_grisp_util:grisp_app(rebar_state:all_deps(State)),
+    AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
+    {[Grisp], _} = rebar3_grisp_util:grisp_app(AllApps),
     [GrispFiles, ProjectFiles] = lists:map(
         fun(Dir) -> grisp_files(Dir, Platform) end,
         [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
