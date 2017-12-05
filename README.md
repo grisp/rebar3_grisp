@@ -94,6 +94,9 @@ Then execute `rebar3 grisp build`. This will take some time, because Erlang/OTP 
 
 You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you wrote new drivers in C. If you need to build OTP for a second time you can speed it up by using `rebar3 grisp build --configure false`.
 
+The built Erlang distribution and its runtime system is located in the project
+folder, under the path `_grisp/otp/<version>/install`.
+
 ## Deploy an Application
 
 To deploy a GRiSP application, use the command `rebar3 grisp deploy`. The
