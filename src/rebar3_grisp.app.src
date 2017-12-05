@@ -15,6 +15,11 @@
     ]},
     {licenses, ["Apache 2.0"]},
     {links, [
-        {"GitHub", "https://github.com/grisp/rebar3_grisp"}
+        {"GitHub",
+            "https://github.com/grisp/rebar3_grisp"
+        },
+        {"Changelog",
+            "https://github.com/grisp/rebar3_grisp/blob/master/CHANGELOG.md"
+        }
     ]}
 ]}.
