@@ -64,11 +64,15 @@ format_error(Reason) ->
 
 ensure_clone(URL, Dir, Version, Opts) ->
     Branch = "grisp/OTP-" ++ Version,
-    ok = filelib:ensure_dir(filename:join(Dir, ".")),
     case file:read_file_info(Dir ++ "/.git") of
         {error, enoent} ->
             console("* Cloning...  (this may take a while)"),
-            sh("git clone -b " ++ Branch ++ " " ++ URL ++ " " ++ Dir);
+            sh(
+                "git clone "
+                "-b " ++ Branch ++ " "
+                "--single-branch " ++
+                URL ++ " " ++ Dir
+            );
         {ok, #file_info{type = directory}} ->
             console("* Using existing checkout"),
             ok
