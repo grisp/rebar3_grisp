@@ -96,7 +96,7 @@ check_otp_release(Config) ->
             )
     end.
 
-make_release(_State, Name, Version, _OTPVersion) when
+make_release(_State, Name, Version, _InstallRoot) when
   Name == undefined; Version == undefined ->
     rebar_api:abort("Release name and/or version not specified", []);
 make_release(State, Name, Version, InstallRoot) ->
