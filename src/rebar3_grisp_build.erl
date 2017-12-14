@@ -43,7 +43,7 @@ do(State) ->
     Config = rebar_state:get(State, grisp, []),
     URL = "https://github.com/grisp/otp",
     Platform = "grisp_base",
-    Version = "19.3.6",
+    Version = rebar3_grisp_util:get([otp, version], Config, "19.3.6"),
     BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
     InstallRoot = rebar3_grisp_util:otp_install_root(State, Version),
     info("Checking out Erlang/OTP ~s", [Version]),
@@ -68,7 +68,7 @@ ensure_clone(URL, Dir, Version, Opts) ->
     case file:read_file_info(Dir ++ "/.git") of
         {error, enoent} ->
             console("* Cloning...  (this may take a while)"),
-            sh("git clone " ++ URL ++ " " ++ Dir);
+            sh("git clone -b " ++ Branch ++ " " ++ URL ++ " " ++ Dir);
         {ok, #file_info{type = directory}} ->
             console("* Using existing checkout"),
             ok

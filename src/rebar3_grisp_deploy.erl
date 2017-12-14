@@ -53,14 +53,16 @@ do(State) ->
     check_otp_release(Config),
     RelName = proplists:get_value(relname, Args),
     RelVsn = proplists:get_value(relvsn, Args),
-    ErlangVersion = "19.3.6",
-    State3 = make_release(State, RelName, RelVsn, ErlangVersion),
+    OTPVersion = rebar3_grisp_util:get([otp, version], Config, "19.3.6"),
+    InstallRoot = rebar3_grisp_util:otp_install_root(State, OTPVersion),
+    State3 = make_release(State, RelName, RelVsn, InstallRoot),
     Force = proplists:get_value(force, Args),
     Dest = get_option(destination, [deploy, destination], State),
     info("Deploying ~s-~s to ~s", [RelName, RelVsn, Dest]),
     run_script(pre_script, State),
     % FIXME: Resolve ERTS version
-    ERTSVsn = "8.3.5",
+    ERTSPath = filelib:wildcard(filename:join(InstallRoot, "erts-*")),
+    "erts-" ++ ERTSVsn = filename:basename(ERTSPath),
     % FIXME: Resolve platform
     Platform = "grisp_base",
     copy_files(State3, RelName, RelVsn, Platform, ERTSVsn, Dest, Force),
@@ -94,11 +96,10 @@ check_otp_release(Config) ->
             )
     end.
 
-make_release(_State, Name, Version, _ErlangVersion) when
+make_release(_State, Name, Version, _OTPVersion) when
   Name == undefined; Version == undefined ->
     rebar_api:abort("Release name and/or version not specified", []);
-make_release(State, Name, Version, ErlangVersion) ->
-    InstallRoot = rebar3_grisp_util:otp_install_root(State, ErlangVersion),
+make_release(State, Name, Version, InstallRoot) ->
     State2 = rebar_state:set(State, relx, [
         {include_erts, InstallRoot},
         {system_libs, InstallRoot},
