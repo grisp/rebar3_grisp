@@ -41,9 +41,9 @@ init(State) ->
 do(State) ->
     {Opts, _Rest} = rebar_state:command_parsed_args(State),
     Config = rebar_state:get(State, grisp, []),
-    URL = "https://github.com/grisp/otp",
-    Platform = "grisp_base",
-    Version = "19.3.6",
+    URL = <<"https://github.com/grisp/otp">>,
+    Platform = <<"grisp_base">>,
+    Version = <<"19.3.6">>,
     BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
     InstallRoot = rebar3_grisp_util:otp_install_root(State, Version),
     info("Checking out Erlang/OTP ~s", [Version]),
@@ -63,23 +63,23 @@ format_error(Reason) ->
 %--- Internal ------------------------------------------------------------------
 
 ensure_clone(URL, Dir, Version, Opts) ->
-    Branch = "grisp/OTP-" ++ Version,
-    ok = filelib:ensure_dir(filename:join(Dir, ".")),
-    case file:read_file_info(Dir ++ "/.git") of
+    Branch = <<"grisp/OTP-", Version/binary>>,
+    ok = filelib:ensure_dir(filename:join(Dir, <<".">>)),
+    case file:read_file_info(<<Dir/binary, "/.git">>) of
         {error, enoent} ->
             console("* Cloning...  (this may take a while)"),
-            sh("git clone " ++ URL ++ " " ++ Dir);
+            sh(<<"git clone ", URL/binary, " ", Dir/binary>>);
         {ok, #file_info{type = directory}} ->
             console("* Using existing checkout"),
             ok
     end,
-    sh("git checkout " ++ Branch, [{cd, Dir}]),
+    sh(<<"git checkout ", Branch/binary>>, [{cd, Dir}]),
     case rebar3_grisp_util:get(clean, Opts, false) of
         true ->
             console("* Cleaning..."),
-            sh("git reset --hard", [{cd, Dir}]),
-            sh("git clean -fXd", [{cd, Dir}]),
-            sh("git clean -fxd", [{cd, Dir}]);
+            sh(<<"git reset --hard">>, [{cd, Dir}]),
+            sh(<<"git clean -fXd">>, [{cd, Dir}]),
+            sh(<<"git clean -fxd">>, [{cd, Dir}]);
         false ->
             ok
     end,
@@ -108,27 +108,27 @@ copy_app_code(App, Platform, OTPRoot, Drivers) ->
 
 copy_sys(Source, OTPRoot) ->
     copy_files(
-        {Source, "sys/*.h"},
-        {OTPRoot, "erts/emulator/sys/unix"}
+        {Source, <<"sys/*.h">>},
+        {OTPRoot, <<"erts/emulator/sys/unix">>}
     ),
     copy_files(
-        {Source, "sys/*.c"},
-        {OTPRoot, "erts/emulator/sys/unix"}
+        {Source, <<"sys/*.c">>},
+        {OTPRoot, <<"erts/emulator/sys/unix">>}
     ).
 
 copy_drivers(Source, OTPRoot) ->
     copy_files(
-        {Source, "drivers/*.h"},
-        {OTPRoot, "erts/emulator/drivers/unix"}
+        {Source, <<"drivers/*.h">>},
+        {OTPRoot, <<"erts/emulator/drivers/unix">>}
     ),
     copy_files(
-        {Source, "drivers/*.c"},
-        {OTPRoot, "erts/emulator/drivers/unix"}
+        {Source, <<"drivers/*.c">>},
+        {OTPRoot, <<"erts/emulator/drivers/unix">>}
     ).
 
-copy_files({SourceRoot, Pattern}, Target) ->
-    Files = filelib:wildcard(filename:join(SourceRoot, Pattern)),
-    [copy_file(F, Target) || F <- Files].
+copy_files({Root, Pattern}, Target) ->
+    Files = filelib:wildcard(binary_to_list(filename:join([Root, Pattern]))),
+    [copy_file(list_to_binary(F), Target) || F <- Files].
 
 copy_file(Source, {TargetRoot, TargetDir}) ->
     Base = filename:basename(Source),
@@ -150,14 +150,18 @@ patch_otp(OTPRoot, Drivers) ->
     ],
     Patch = bbmustache:compile(Template, Context, [{key_type, atom}]),
     ok = file:write_file(filename:join(OTPRoot, "otp.patch"), Patch),
-    case sh("git apply otp.patch --reverse --check", [{cd, OTPRoot}, return_on_error]) of
+    PatchCheck = sh(<<"git apply otp.patch --reverse --check">>, [
+        {cd, OTPRoot},
+        return_on_error
+    ]),
+    case PatchCheck of
         {ok, _} ->
             console("* Patching OTP... (skipped, already patched)");
         {error, {1, _}} ->
             console("* Patching OTP..."),
-            sh("git apply otp.patch", [{cd, OTPRoot}])
+            sh(<<"git apply otp.patch">>, [{cd, OTPRoot}])
     end,
-    sh("rm otp.patch", [{cd, OTPRoot}]).
+    sh(<<"rm otp.patch">>, [{cd, OTPRoot}]).
 
 build(Config, BuildRoot, InstallRoot, Opts) ->
     TcRoot = rebar3_grisp_util:get([toolchain, root], Config),
@@ -172,32 +176,34 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
     case rebar3_grisp_util:get(configure, Opts) of
         true ->
             console("* Running autoconf..."),
-            sh("./otp_build autoconf", BuildOpts),
+            sh(<<"./otp_build autoconf">>, BuildOpts),
             console("* Running configure...  (this may take a while)"),
-            sh(
-                "./otp_build configure "
-                "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf "
-                "--disable-threads "
-                "--prefix=/",
-                BuildOpts
-            );
+            sh(<<
+                "./otp_build configure ",
+                "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf ",
+                "--disable-threads ",
+                "--prefix=/"
+            >>, BuildOpts);
         false ->
             ok
     end,
     console("* Compiling...  (this may take a while)"),
-    sh("./otp_build boot -a", BuildOpts),
+    sh(<<"./otp_build boot -a">>, BuildOpts),
     console("* Installing..."),
     ok = filelib:ensure_dir(filename:join(InstallRoot, ".")),
-    sh("rm -rf " ++ InstallRoot ++ "/*", InstallOpts),
-    sh("make install DESTDIR=\"" ++ InstallRoot ++ "\"", BuildOpts),
-    sh("mv lib lib.old", InstallOpts),
-    sh("mv lib.old/erlang/* .", InstallOpts),
-    sh("rm -rf lib.old", InstallOpts),
-    [Beam] = filelib:wildcard(filename:join(InstallRoot, "erts-*/bin/beam")),
-    sh(
-        "arm-rtems4.12-objcopy "
-        "-O binary "
-        ++ Beam ++ " "
-        ++ Beam ++ ".bin",
-        InstallOpts
-    ).
+    sh(<<"rm -rf ", InstallRoot/binary, "/*">>, InstallOpts),
+    sh(<<"make install DESTDIR=\"", InstallRoot/binary, "\"">>, BuildOpts),
+    sh(<<"mv lib lib.old">>, InstallOpts),
+    sh(<<"mv lib.old/erlang/* .">>, InstallOpts),
+    sh(<<"rm -rf lib.old">>, InstallOpts),
+    [BeamStr] = filelib:wildcard(binary_to_list(filename:join([
+        InstallRoot,
+        <<"erts-*/bin/beam">>
+    ]))),
+    Beam = list_to_binary(BeamStr),
+    sh(<<
+        "arm-rtems4.12-objcopy ",
+        "-O binary ",
+        Beam/binary, " ",
+        Beam/binary, ".bin"
+    >>, InstallOpts).

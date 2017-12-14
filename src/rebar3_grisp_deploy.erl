@@ -53,16 +53,16 @@ do(State) ->
     check_otp_release(Config),
     RelName = proplists:get_value(relname, Args),
     RelVsn = proplists:get_value(relvsn, Args),
-    ErlangVersion = "19.3.6",
+    ErlangVersion = <<"19.3.6">>,
     State3 = make_release(State, RelName, RelVsn, ErlangVersion),
     Force = proplists:get_value(force, Args),
-    Dest = get_option(destination, [deploy, destination], State),
+    Dest = to_binary(get_option(destination, [deploy, destination], State)),
     info("Deploying ~s-~s to ~s", [RelName, RelVsn, Dest]),
     run_script(pre_script, State),
     % FIXME: Resolve ERTS version
-    ERTSVsn = "8.3.5",
+    ERTSVsn = <<"8.3.5">>,
     % FIXME: Resolve platform
-    Platform = "grisp_base",
+    Platform = <<"grisp_base">>,
     copy_files(State3, RelName, RelVsn, Platform, ERTSVsn, Dest, Force),
     copy_release(State3, RelName, RelVsn, Dest, Force),
     run_script(post_script, State),
@@ -100,8 +100,8 @@ make_release(_State, Name, Version, _ErlangVersion) when
 make_release(State, Name, Version, ErlangVersion) ->
     InstallRoot = rebar3_grisp_util:otp_install_root(State, ErlangVersion),
     State2 = rebar_state:set(State, relx, [
-        {include_erts, InstallRoot},
-        {system_libs, InstallRoot},
+        {include_erts, binary_to_list(InstallRoot)},
+        {system_libs, binary_to_list(InstallRoot)},
         {extended_start_script, false},
         {dev_mode, false}
         |rebar_state:get(State, relx, [])
@@ -117,7 +117,7 @@ run_script(Name, State) ->
         undefined -> ok;
         Script ->
             console("* Running ~p", [Name]),
-            {ok, Output} = sh(Script),
+            {ok, Output} = sh(to_binary(Script)),
             case trim(Output) of
                 ""      -> ok;
                 Trimmed -> console(Trimmed)
@@ -146,7 +146,7 @@ copy_files(State, RelName, RelVsn, Platform, ERTSVsn, Dest, Force) ->
     ).
 
 grisp_files(Dir, Platform) ->
-    Path = filename:join([Dir, "grisp", Platform, "files"]),
+    Path = filename:join([Dir, <<"grisp">>, Platform, <<"files">>]),
     resolve_files(find_files(Path), Path).
 
 write_file(Dest, Target, Source, Force, Context) ->
@@ -161,13 +161,14 @@ write_file(Dest, Target, Source, Force, Context) ->
     ).
 
 find_files(Dir) ->
-    [F || F <- filelib:wildcard(Dir ++ "/**"), filelib:is_regular(F)].
+    Files = filelib:wildcard(binary_to_list(filename:join(Dir, <<"**">>))),
+    [list_to_binary(F) || F <- Files, filelib:is_regular(F)].
 
 resolve_files(Files, Root) -> resolve_files(Files, Root, #{}).
 
 resolve_files([File|Files], Root, Resolved) ->
-    Relative = prefix(File, Root ++ "/"),
-    Name = filename:rootname(Relative, ".mustache"),
+    Relative = prefix(File, <<Root/binary, "/">>),
+    Name = filename:rootname(Relative, <<".mustache">>),
     resolve_files(Files, Root, maps:put(
         Name,
         resolve_file(Root, Relative, Name, maps:find(Name, Resolved)),
@@ -177,9 +178,10 @@ resolve_files([], _Root, Resolved) ->
     Resolved.
 
 prefix(String, Prefix) ->
-    case lists:split(length(Prefix), String) of
-        {Prefix, Rest} -> Rest;
-        _              -> String
+    Size = byte_size(Prefix),
+    case String of
+        <<Prefix:Size/binary, Rest/binary>> -> Rest;
+        _                                   -> String
     end.
 
 resolve_file(Root, Source, Source, error) ->
@@ -196,14 +198,18 @@ load_file(Source, _Context) ->
 
 copy_release(State, Name, _Version, Dest, Force) ->
     console("* Copying release..."),
-    Source = filename:join([rebar_dir:base_dir(State), "rel", Name]),
+    Source = list_to_binary(filename:join([
+        rebar_dir:base_dir(State),
+        "rel",
+        Name
+    ])),
     Target = filename:join(Dest, Name),
     Command = case Force of
-        true  -> "cp -Rf";
-        false -> "cp -R"
+        true  -> <<"cp -Rf">>;
+        false -> <<"cp -R">>
     end,
     ensure_dir(Target),
-    sh(string:join([Command, Source ++ "/", Target], " ")).
+    sh(join([Command, <<Source/binary, "/">>, Target], <<" ">>)).
 
 force_execute(File, Force, Fun) ->
     case {filelib:is_file(File), Force} of
@@ -242,4 +248,12 @@ get_arg_option(Arg, State, Fun) ->
     end.
 
 trim(String) ->
-    re:replace(String, "(^[\s\n\t]+|[\s\n\t]+$)", "", [global, {return, list}]).
+    re:replace(String, <<"(^[\s\n\t]+|[\s\n\t]+$)">>, <<"">>,
+        [global, {return, list}]
+    ).
+
+to_binary(Term) when is_list(Term)   -> list_to_binary(Term);
+to_binary(Term) when is_binary(Term) -> Term.
+
+join([Head|Tail], Separator) ->
+    iolist_to_binary([Head|[[Separator, Item] || Item <- Tail]]).

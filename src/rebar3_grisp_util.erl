@@ -30,7 +30,7 @@ abort(Msg, Args) -> rebar_api:abort(Msg, Args).
 
 sh(Command) -> sh(Command, []).
 sh(Command, Args) ->
-    rebar_utils:sh(Command, Args ++ [abort_on_error]).
+    rebar_utils:sh(binary_to_list(Command), Args ++ [abort_on_error]).
 
 get(Keys, Term) when is_list(Keys) ->
     deep_get(Keys, Term, fun() -> error({key_not_found, Keys, Term}) end);
