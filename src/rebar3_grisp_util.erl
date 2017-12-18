@@ -7,6 +7,8 @@
 -export([console/2]).
 -export([abort/1]).
 -export([abort/2]).
+-export([warn/1]).
+-export([warn/2]).
 -export([sh/1]).
 -export([sh/2]).
 -export([get/2]).
@@ -27,6 +29,9 @@ console(Msg, Args) -> rebar_api:console(Msg, Args).
 
 abort(Msg) -> abort(Msg, []).
 abort(Msg, Args) -> rebar_api:abort(Msg, Args).
+
+warn(Msg) -> warn(Msg, []).
+warn(Msg, Args) -> rebar_api:warn(Msg, Args).
 
 sh(Command) -> sh(Command, []).
 sh(Command, Args) ->

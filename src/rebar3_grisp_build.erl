@@ -7,7 +7,9 @@
 
 -include_lib("kernel/include/file.hrl").
 
--import(rebar3_grisp_util, [sh/1, sh/2, info/1, info/2, console/1, console/2]).
+-import(rebar3_grisp_util, [
+    sh/1, sh/2, info/1, info/2, warn/1, abort/1, console/1, console/2
+]).
 
 %--- Callbacks -----------------------------------------------------------------
 
@@ -26,6 +28,9 @@ init(State) ->
                 },
                 {configure, $g, "configure", {boolean, true},
                     "Run autoconf & configure"
+                },
+                {flavour, $f, "flavour", {atom, single},
+                    "Beam flavour (single|plain). "
                 }
             ]},
             {profiles, [default]},
@@ -41,6 +46,16 @@ init(State) ->
 do(State) ->
     {Opts, _Rest} = rebar_state:command_parsed_args(State),
     Config = rebar_state:get(State, grisp, []),
+    Flavour = rebar3_grisp_util:get(flavour, Opts),
+    case Flavour of
+        single -> ok;
+        plain -> ok;
+        smp ->
+            warn("SMP flavour not really supported yet, "
+                 "the release will probably not work.");
+        _ ->
+            abort("unsupported flavour")
+    end,
     URL = "https://github.com/grisp/otp",
     Platform = "grisp_base",
     Version = rebar3_grisp_util:get([otp, version], Config, "19.3.6"),
@@ -51,7 +66,7 @@ do(State) ->
     Apps = apps(State),
     info("Preparing GRiSP code"),
     copy_code(Apps, Platform, BuildRoot),
-    info("Building"),
+    info("Building (~p)", [Flavour]),
     build(Config, BuildRoot, InstallRoot, Opts),
     info("Done"),
     {ok, State}.
@@ -173,7 +188,18 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
     BuildOpts = [{cd, BuildRoot}|AllOpts],
     InstallOpts = [{cd, InstallRoot}|AllOpts],
     rebar_api:debug("~p", [BuildOpts]),
-    case rebar3_grisp_util:get(configure, Opts) of
+    Flavour = rebar3_grisp_util:get(flavour, Opts),
+    ConfigureOpt = rebar3_grisp_util:get(configure, Opts),
+    FlavourChanged = check_last_flavour(Flavour, BuildRoot),
+    DoConfigure = case {ConfigureOpt, FlavourChanged} of
+        {Opt, true} -> Opt;
+        {true, false} -> true;
+        {false, false} ->
+            warn("Flavour changed, enforcing reconfiguration."),
+            true
+    end,
+
+    case DoConfigure of
         true ->
             console("* Running autoconf..."),
             sh("./otp_build autoconf", BuildOpts),
@@ -181,15 +207,16 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
             sh(
                 "./otp_build configure "
                 "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf "
-                "--disable-threads "
-                "--prefix=/",
+                "--prefix=/ "
+                ++ configure_extra_options(Flavour),
                 BuildOpts
             );
         false ->
             ok
     end,
     console("* Compiling...  (this may take a while)"),
-    sh("./otp_build boot -a", BuildOpts),
+    sh("./otp_build " ++ build_command(Flavour) ++ " -a", BuildOpts),
+    store_flavour(Flavour, BuildRoot),
     console("* Installing..."),
     ok = filelib:ensure_dir(filename:join(InstallRoot, ".")),
     sh("rm -rf " ++ InstallRoot ++ "/*", InstallOpts),
@@ -197,7 +224,7 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
     sh("mv lib lib.old", InstallOpts),
     sh("mv lib.old/erlang/* .", InstallOpts),
     sh("rm -rf lib.old", InstallOpts),
-    [Beam] = filelib:wildcard(filename:join(InstallRoot, "erts-*/bin/beam")),
+    Beam = install_beam(Flavour, InstallRoot, AllOpts),
     sh(
         "arm-rtems4.12-objcopy "
         "-O binary "
@@ -205,3 +232,43 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
         ++ Beam ++ ".bin",
         InstallOpts
     ).
+
+
+%--- Internal Functions --------------------------------------------------------
+
+check_last_flavour(Flavour, BuildRoot) ->
+    FlavourPath = filename:join(BuildRoot, "GRISP_FLAVOUR"),
+    case file:read_file(FlavourPath) of
+        {error, _} -> false;
+        {ok, FlavourStr} ->
+            binary_to_existing_atom(FlavourStr, latin1) =:= Flavour
+    end.
+
+store_flavour(Flavour, BuildRoot) ->
+    FlavourPath = filename:join(BuildRoot, "GRISP_FLAVOUR"),
+    file:write_file(FlavourPath, atom_to_binary(Flavour, latin1)).
+
+configure_extra_options(single) ->
+    "--disable-threads";
+configure_extra_options(plain) ->
+    "--disable-smp-support";
+configure_extra_options(smp) ->
+    "".
+
+build_command(single) -> "boot";
+build_command(plain) -> "plain";
+build_command(smp) -> "smp".
+
+install_beam(Flavour, InstallRoot, Opts)
+  when Flavour =:= single; Flavour =:= plain ->
+    Wildcard = "erts-*/bin/beam",
+    [Beam] = filelib:wildcard(filename:join(InstallRoot, Wildcard)),
+    sh("rm -f " ++ Beam ++ ".smp", Opts),
+    Beam;
+install_beam(smp, InstallRoot, Opts) ->
+    Wildcard = "erts-*/bin/beam.smp",
+    [SmpBeam] = filelib:wildcard(filename:join(InstallRoot, Wildcard)),
+    Beam = string:substr(SmpBeam, 1, length(SmpBeam) - 4),
+    sh("rm -f " ++ Beam, Opts),
+    sh("mv " ++ SmpBeam ++ " " ++ Beam, Opts),
+    Beam.
