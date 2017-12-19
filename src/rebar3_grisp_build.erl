@@ -191,7 +191,6 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
             sh(
                 "./otp_build configure "
                 "--xcomp-conf=xcomp/erl-xcomp-arm-rtems.conf "
-                "--disable-threads "
                 "--prefix=/",
                 BuildOpts
             );
@@ -207,7 +206,11 @@ build(Config, BuildRoot, InstallRoot, Opts) ->
     sh("mv lib lib.old", InstallOpts),
     sh("mv lib.old/erlang/* .", InstallOpts),
     sh("rm -rf lib.old", InstallOpts),
-    [Beam] = filelib:wildcard(filename:join(InstallRoot, "erts-*/bin/beam")),
+    Wildcard = "erts-*/bin/beam.smp",
+    [BeamSmp] = filelib:wildcard(filename:join(InstallRoot, Wildcard)),
+    Beam = string:substr(BeamSmp, 1, length(BeamSmp) - 4),
+    sh("rm -f " ++ Beam, InstallOpts),
+    sh("mv " ++ BeamSmp ++ " " ++ Beam, InstallOpts),
     sh(
         "arm-rtems4.12-objcopy "
         "-O binary "
