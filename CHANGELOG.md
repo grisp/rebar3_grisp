@@ -1,5 +1,21 @@
 # Change Log
 
+## [1.0.0](https://github.com/grisp/rebar3_grisp/tree/1.0.0) (2017-12-19)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/0.1.1...1.0.0)
+
+**Fixed bugs:**
+
+- With default profile section ERTS does not get included [\#8](https://github.com/grisp/rebar3_grisp/issues/8)
+
+**Closed issues:**
+
+- Document rebar3 grisp build [\#3](https://github.com/grisp/rebar3_grisp/issues/3)
+
+**Merged pull requests:**
+
+- Make SMP the default and add support for OTP 20.2 [\#13](https://github.com/grisp/rebar3_grisp/pull/13) ([sylane](https://github.com/sylane))
+- Make OTP version branch customizable [\#12](https://github.com/grisp/rebar3_grisp/pull/12) ([eproxus](https://github.com/eproxus))
+
 ## [0.1.1](https://github.com/grisp/rebar3_grisp/tree/0.1.1) (2017-12-05)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/0.1.0...0.1.1)
 
