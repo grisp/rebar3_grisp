@@ -7,7 +7,9 @@
 
 -include_lib("kernel/include/file.hrl").
 
--import(rebar3_grisp_util, [sh/1, sh/2, info/1, info/2, console/1, console/2]).
+-import(rebar3_grisp_util, [
+    sh/1, sh/2, info/1, info/2, abort/2, console/1, console/2
+]).
 
 %--- Callbacks -----------------------------------------------------------------
 
@@ -50,7 +52,7 @@ do(State) ->
     ensure_clone(URL, BuildRoot, Version, Opts),
     Apps = apps(State),
     info("Preparing GRiSP code"),
-    copy_code(Apps, Platform, BuildRoot),
+    copy_code(Apps, Platform, BuildRoot, Version),
     info("Building"),
     build(Config, BuildRoot, InstallRoot, Opts),
     info("Done"),
@@ -94,7 +96,7 @@ apps(State) ->
     {Grisp, Other} = rebar3_grisp_util:grisp_app(Apps),
     Other ++ Grisp.
 
-copy_code(Apps, Platform, OTPRoot) ->
+copy_code(Apps, Platform, OTPRoot, Version) ->
     console("* Copying C code..."),
     Drivers = lists:foldl(
         fun(A, D) ->
@@ -103,7 +105,7 @@ copy_code(Apps, Platform, OTPRoot) ->
         [],
          Apps
     ),
-    patch_otp(OTPRoot, Drivers).
+    patch_otp(OTPRoot, Drivers, Version).
 
 copy_app_code(App, Platform, OTPRoot, Drivers) ->
     Source = filename:join([rebar_app_info:dir(App), "grisp", Platform]),
@@ -142,10 +144,18 @@ copy_file(Source, {TargetRoot, TargetDir}) ->
     {ok, _} = file:copy(Source, Target),
     TargetFile.
 
-patch_otp(OTPRoot, Drivers) ->
-    Template = bbmustache:parse_file(
-        filename:join(code:priv_dir(rebar3_grisp), "patches/otp.patch.mustache")
-    ),
+patch_otp(OTPRoot, Drivers, Version) ->
+    TemplateFile = filename:join([
+        code:priv_dir(rebar3_grisp),
+        "patches/otp-" ++ Version ++ ".patch.mustache"
+    ]),
+    case filelib:is_file(TemplateFile) of
+        true  -> apply_patch(TemplateFile, Drivers, OTPRoot);
+        false -> abort("Patch file for OTP ~s missing", [Version])
+    end.
+
+apply_patch(TemplateFile, Drivers, OTPRoot) ->
+    Template = bbmustache:parse_file(TemplateFile),
     Context = [
         {erts_emulator_makefile_in, [
             {lines, 10 + length(Drivers)},
