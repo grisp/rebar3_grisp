@@ -5,6 +5,8 @@
 -export([do/1]).
 -export([format_error/1]).
 
+-include("rebar3_grisp.hrl").
+
 -import(rebar3_grisp_util, [
     info/2,
     console/1,

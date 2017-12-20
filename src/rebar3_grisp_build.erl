@@ -5,6 +5,7 @@
 -export([do/1]).
 -export([format_error/1]).
 
+-include("rebar3_grisp.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -import(rebar3_grisp_util, [
