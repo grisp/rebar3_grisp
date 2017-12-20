@@ -45,7 +45,7 @@ do(State) ->
     Config = rebar_state:get(State, grisp, []),
     URL = "https://github.com/grisp/otp",
     Platform = "grisp_base",
-    Version = rebar3_grisp_util:get([otp, version], Config, "19.3.6"),
+    Version = rebar3_grisp_util:get([otp, version], Config, ?DEFAULT_OTP_VSN),
     BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
     InstallRoot = rebar3_grisp_util:otp_install_root(State, Version),
     info("Checking out Erlang/OTP ~s", [Version]),

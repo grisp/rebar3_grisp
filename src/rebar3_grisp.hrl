@@ -1,0 +1,1 @@
+-define(DEFAULT_OTP_VSN, "20.2").
