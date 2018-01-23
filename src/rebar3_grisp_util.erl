@@ -16,6 +16,7 @@
 -export([otp_build_root/2]).
 -export([otp_install_root/2]).
 -export([grisp_app/1]).
+-export([merge_config/2]).
 
 %--- API -----------------------------------------------------------------------
 
@@ -65,6 +66,9 @@ grisp_app(Apps) ->
         Apps
     ).
 
+merge_config(New, Old) ->
+    merge_config_(rebar_utils:tup_umerge(New, Old), []).
+
 %--- Internal ------------------------------------------------------------------
 
 deep_get([], Value, _Default) ->
@@ -93,3 +97,15 @@ deep_update([Key|Keys], Struct, Fun) when is_map(Struct) ->
     end;
 deep_update([], Struct, Fun) ->
     Fun([], Struct).
+
+merge_config_([], Acc) -> lists:reverse(Acc);
+merge_config_([{Key, []}, {Key, [{_, _}|_] = Val} | Rest], Acc) ->
+    merge_config_(Rest, [{Key, Val} | Acc]);
+merge_config_([{Key, [{_, _}|_] = Val}, {Key, []} | Rest], Acc) ->
+    merge_config_(Rest, [{Key, Val} | Acc]);
+merge_config_([{Key, [{_, _}|_] = New}, {Key, [{_, _}|_] = Old} | Rest], Acc) ->
+    merge_config_(Rest, [{Key, merge_config(New, Old)} | Acc]);
+merge_config_([{Key, Val}, {Key, _} | Rest], Acc) ->
+    merge_config_(Rest, [{Key, Val} | Acc]);
+merge_config_([Item | Rest], Acc) ->
+    merge_config_(Rest, [Item | Acc]).
