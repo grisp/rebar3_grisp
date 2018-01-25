@@ -15,6 +15,7 @@
 -export([root/1]).
 -export([otp_build_root/2]).
 -export([otp_install_root/2]).
+-export([otp_install_release/1]).
 -export([grisp_app/1]).
 -export([merge_config/2]).
 
@@ -59,6 +60,13 @@ otp_build_root(State, Version) ->
 
 otp_install_root(State, Version) ->
     filename:join([root(State), "otp", Version, "install"]).
+
+otp_install_release(InstallRoot) ->
+    ReleaseFile = filename:join([InstallRoot, "releases", "RELEASES"]),
+    case file:consult(ReleaseFile) of
+        {ok, [[{release, "Erlang/OTP", RelVer, _, _, _} | _]]} -> RelVer;
+        _ -> undefined
+    end.
 
 grisp_app(Apps) ->
     lists:partition(
