@@ -58,7 +58,7 @@ do(State) ->
         ?DEFAULT_OTP_VSN
     ),
     InstallRoot = rebar3_grisp_util:otp_install_root(State, OTPVersion),
-    InstallRelVer = rebar3_grisp_util:otp_install_release(InstallRoot),
+    InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
     check_otp_release(InstallRelVer),
     State3 = make_release(State, RelName, RelVsn, InstallRoot),
     Force = proplists:get_value(force, Args),
