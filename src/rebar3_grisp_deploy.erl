@@ -52,13 +52,14 @@ do(State) ->
     {Args, _} = rebar_state:command_parsed_args(State),
     info("~p", [Args]),
     Config = rebar_state:get(State, grisp, []),
-    check_otp_release(Config),
     RelName = proplists:get_value(relname, Args),
     RelVsn = proplists:get_value(relvsn, Args),
     OTPVersion = rebar3_grisp_util:get([otp, version], Config,
         ?DEFAULT_OTP_VSN
     ),
     InstallRoot = rebar3_grisp_util:otp_install_root(State, OTPVersion),
+    InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
+    check_otp_release(InstallRelVer),
     State3 = make_release(State, RelName, RelVsn, InstallRoot),
     Force = proplists:get_value(force, Args),
     Dest = get_option(destination, [deploy, destination], State),
@@ -67,9 +68,8 @@ do(State) ->
     % FIXME: Resolve ERTS version
     ERTSPath = filelib:wildcard(filename:join(InstallRoot, "erts-*")),
     "erts-" ++ ERTSVsn = filename:basename(ERTSPath),
-    % FIXME: Resolve platform
-    Platform = "grisp_base",
-    copy_files(State3, RelName, RelVsn, Platform, ERTSVsn, Dest, Force),
+    Board = rebar3_grisp_util:get([board], Config, ?DEFAULT_GRISP_BOARD),
+    copy_files(State3, RelName, RelVsn, Board, ERTSVsn, Dest, Force),
     copy_release(State3, RelName, RelVsn, Dest, Force),
     run_script(post_script, State),
     {ok, State3}.
@@ -80,23 +80,14 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 
-check_otp_release(Config) ->
-    try
-        OTPRelease = rebar3_grisp_util:get(otp_release, Config, undefined),
-        case {OTPRelease, erlang:system_info(otp_release)} of
-            {Target, Target} -> ok;
-            {Target, Current} ->
-                rebar_api:warn(
-                    "Current Erlang version (~p) does not match target "
-                    "Erlang version (~p). It is not guaranteed that the "
-                    "deployed release will work!", [Current, Target]
-                )
-        end
-    catch
-        error:{key_not_found, [otp_release], _} ->
-            abort(
-                "GRiSP OTP release in rebar.config not configured:"
-                "~n~n{grisp, [{otp_release, \"<VERSION>\"}]}"
+check_otp_release(InstallRelVer) ->
+    case {InstallRelVer, erlang:system_info(otp_release)} of
+        {Target, Target} -> ok;
+        {Target, Current} ->
+            rebar_api:warn(
+                "Current Erlang version (~p) does not match target "
+                "Erlang version (~p). It is not guaranteed that the "
+                "deployed release will work!", [Current, Target]
             )
     end.
 
@@ -129,15 +120,18 @@ run_script(Name, State) ->
             end
     end.
 
-copy_files(State, RelName, RelVsn, Platform, ERTSVsn, Dest, Force) ->
+copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
     AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
-    {[Grisp], _} = rebar3_grisp_util:grisp_app(AllApps),
-    [GrispFiles, ProjectFiles] = lists:map(
-        fun(Dir) -> grisp_files(Dir, Platform) end,
-        [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
-    ),
-    Tree = maps:merge(GrispFiles, ProjectFiles),
+    Tree = case rebar3_grisp_util:grisp_app(AllApps) of
+        {[], _} -> grisp_files(rebar_state:dir(State), Board);
+        {[Grisp], _} ->
+            [GrispFiles, ProjectFiles] = lists:map(
+                fun(Dir) -> grisp_files(Dir, Board) end,
+                [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
+            ),
+            maps:merge(GrispFiles, ProjectFiles)
+    end,
     Context = [
         {release_name, RelName},
         {release_version, RelVsn},
@@ -150,8 +144,8 @@ copy_files(State, RelName, RelVsn, Platform, ERTSVsn, Dest, Force) ->
         Tree
     ).
 
-grisp_files(Dir, Platform) ->
-    Path = filename:join([Dir, "grisp", Platform, "files"]),
+grisp_files(Dir, Board) ->
+    Path = filename:join([Dir, "grisp", Board, "files"]),
     resolve_files(find_files(Path), Path).
 
 write_file(Dest, Target, Source, Force, Context) ->
