@@ -58,10 +58,11 @@ do(State) ->
     copy_code(Apps, Board, BuildRoot, Version),
 
     info("Building"),
-    ErlXComp = find_file(Apps, Board, ["xcomp", "erl-xcomp.conf"]),
+    ErlXComp = "erl-xcomp-" ++ Version ++ ".conf",
+    ErlXCompPath = find_file(Apps, Board, ["xcomp", ErlXComp]),
     BuildConfFile = config_file(Apps, Board, ["grisp.conf"]),
     BuildConfig = rebar3_grisp_util:merge_config(Config, BuildConfFile),
-    build(BuildConfig, ErlXComp, BuildRoot, InstallRoot, Opts),
+    build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, Opts),
 
     info("Done"),
     {ok, State}.
