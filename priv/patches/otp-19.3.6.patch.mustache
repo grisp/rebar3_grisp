@@ -1,17 +1,30 @@
 {{#erts_emulator_makefile_in}}
 diff --git a/erts/emulator/Makefile.in b/erts/emulator/Makefile.in
-index 3579a97c5..d3dfd69e0 100644
+index ff239e155..2e951ae1e 100644
 --- a/erts/emulator/Makefile.in
 +++ b/erts/emulator/Makefile.in
-@@ -835,6 +835,{{lines}} @@ DRV_OBJS = \
+@@ -739,6 +739,{{sys_lines}} @@ $(ERL_TOP)/lib/%.beam:
+ 
+ INIT_OBJS = $(OBJDIR)/erl_main.o	$(PRELOAD_OBJ)
+ 
++ifeq ($(findstring rtems,$(TARGET)),rtems)
+{{#sys_objs}}
++	INIT_OBJS += $(OBJDIR)/{{sys_name}}.o
+{{/sys_objs}}
++endif
++
+ EMU_OBJS = \
+ 	$(OBJDIR)/beam_emu.o		$(OBJDIR)/beam_opcodes.o \
+ 	$(OBJDIR)/beam_load.o		$(OBJDIR)/beam_bif_load.o \
+@@ -833,6 +839,{{drv_lines}} @@ DRV_OBJS = \
  	$(OBJDIR)/zlib_drv.o \
  	$(OBJDIR)/ram_file_drv.o \
  	$(OBJDIR)/ttsl_drv.o
 +
 +ifeq ($(findstring rtems,$(TARGET)),rtems)
-{{#drivers}}
-+	DRV_OBJS += $(OBJDIR)/{{name}}.o
-{{/drivers}}
+{{#drv_objs}}
++	DRV_OBJS += $(OBJDIR)/{{drv_name}}.o
+{{/drv_objs}}
 +endif
 +
  endif

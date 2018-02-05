@@ -144,18 +144,28 @@ config_file(Apps, Board, PathParts, DefaultConf) ->
 
 copy_code(Apps, Board, OTPRoot, Version) ->
     console("* Copying C code..."),
-    Drivers = lists:foldl(
+    SysFiles = lists:foldl(
         fun(A, D) ->
-            copy_app_code(A, Board, OTPRoot, D)
+            copy_app_sys(A, Board, OTPRoot, D)
         end,
         [],
-         Apps
+        Apps
     ),
-    patch_otp(OTPRoot, Drivers, Version).
+    Drivers = lists:foldl(
+        fun(A, D) ->
+            copy_app_drivers(A, Board, OTPRoot, D)
+        end,
+        [],
+        Apps
+    ),
+    patch_otp(OTPRoot, SysFiles, Drivers, Version).
 
-copy_app_code(App, Board, OTPRoot, Drivers) ->
+copy_app_sys(App, Board, OTPRoot, SysFiles) ->
     Source = filename:join([rebar_app_info:dir(App), "grisp", Board]),
-    copy_sys(Source, OTPRoot),
+    SysFiles ++ copy_sys(Source, OTPRoot).
+
+copy_app_drivers(App, Board, OTPRoot, Drivers) ->
+    Source = filename:join([rebar_app_info:dir(App), "grisp", Board]),
     Drivers ++ copy_drivers(Source, OTPRoot).
 
 copy_sys(Source, OTPRoot) ->
@@ -190,22 +200,27 @@ copy_file(Source, {TargetRoot, TargetDir}) ->
     {ok, _} = file:copy(Source, Target),
     TargetFile.
 
-patch_otp(OTPRoot, Drivers, Version) ->
+patch_otp(OTPRoot, SysFiles, Drivers, Version) ->
     TemplateFile = filename:join([
         code:priv_dir(rebar3_grisp),
         "patches/otp-" ++ Version ++ ".patch.mustache"
     ]),
     case filelib:is_file(TemplateFile) of
-        true  -> apply_patch(TemplateFile, Drivers, OTPRoot);
+        true  -> apply_patch(TemplateFile, SysFiles, Drivers, OTPRoot);
         false -> abort("Patch file for OTP ~s missing", [Version])
     end.
 
-apply_patch(TemplateFile, Drivers, OTPRoot) ->
+apply_patch(TemplateFile, SysFiles, Drivers, OTPRoot) ->
     Template = bbmustache:parse_file(TemplateFile),
+    SysObjs = [[{sys_name, filename:basename(N, ".c")}] || N <- SysFiles,
+               filename:basename(N) =/= "erl_main.c"],
+    DrvObjs = [[{drv_name, filename:basename(N, ".c")}] || N <- Drivers],
     Context = [
         {erts_emulator_makefile_in, [
-            {lines, 10 + length(Drivers)},
-            {drivers, [[{name, filename:basename(N, ".c")}] || N <- Drivers]}
+            {sys_lines, 9 + length(SysObjs)},
+            {sys_objs, SysObjs},
+            {drv_lines, 10 + length(DrvObjs)},
+            {drv_objs, DrvObjs}
         ]}
     ],
     Patch = bbmustache:compile(Template, Context, [{key_type, atom}]),
