@@ -220,7 +220,16 @@ apply_patch(TemplateFile, Drivers, OTPRoot) ->
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
 build(Config, ErlXComp, BuildRoot, InstallRoot, Opts) ->
-    TcRoot = rebar3_grisp_util:get([toolchain, root], Config),
+    TcRoot = try
+        rebar3_grisp_util:get([toolchain, root], Config)
+    catch
+        error:{key_not_found, _, _} ->
+            abort(
+                "Tool chain root not configured in rebar.config:\n"
+                "\n"
+                "    {grisp, [{toolchain, [{root, \"/path/to/toolchain\"}]}]}",
+            [])
+    end,
     PATH = os:getenv("PATH"),
     AllOpts = [{env, [
         {"GRISP_TC_ROOT", TcRoot},
