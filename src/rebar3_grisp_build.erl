@@ -9,7 +9,7 @@
 -include_lib("kernel/include/file.hrl").
 
 -import(rebar3_grisp_util, [
-    sh/1, sh/2, info/1, info/2, abort/2, console/1, console/2
+    sh/1, sh/2, info/1, info/2, abort/1, abort/2, console/1, console/2
 ]).
 
 %--- Callbacks -----------------------------------------------------------------
@@ -29,6 +29,9 @@ init(State) ->
                 },
                 {configure, $g, "configure", {boolean, true},
                     "Run autoconf & configure"
+                },
+                {tar, $t, "tar", {boolean, false},
+                    "Create tarball with OTP installation for online repository"
                 }
             ]},
             {profiles, [default]},
@@ -47,26 +50,69 @@ do(State) ->
     URL = "https://github.com/grisp/otp",
     Board = rebar3_grisp_util:get([board], Config, ?DEFAULT_GRISP_BOARD),
     Version = rebar3_grisp_util:get([otp, version], Config, ?DEFAULT_OTP_VSN),
-    BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
-    InstallRoot = rebar3_grisp_util:otp_install_root(State, Version),
-    Apps = apps(State),
 
-    info("Checking out Erlang/OTP ~s", [Version]),
-    ensure_clone(URL, BuildRoot, Version, Opts),
+    Apps = rebar3_grisp_util:apps(State),
 
-    info("Preparing GRiSP code"),
-    copy_code(Apps, Board, BuildRoot, Version),
+    BuildType = rebar3_grisp_util:toolchain_or_prebuilt(Config),
 
-    info("Building"),
-    ErlXComp = "erl-xcomp-" ++ Version ++ ".conf",
-    ErlXCompPath = find_file(Apps, Board, ["xcomp", ErlXComp]),
-    BuildConfFile = config_file(Apps, Board, ["grisp.conf"]),
-    BuildConfig = rebar3_grisp_util:merge_config(Config, BuildConfFile),
-    build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, Opts),
+    case BuildType of
+        prebuilt ->
+            abort("Please specify a build toolchain:~n" ++
+                  "{build, [~n" ++
+                  "{toolchain, [{directory, \"PATH/TO/TOOLCHAIN\"}]}~n" ++
+                 "]}~n");
+        TcRoot when is_list(TcRoot) ->
+            BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
+            InstallRoot = rebar3_grisp_util:otp_install_root(State, Version, build),
+            info("Checking out Erlang/OTP ~s", [Version]),
+            ensure_clone(URL, BuildRoot, Version, Opts),
 
-    info("Done"),
-    {ok, State}.
+            info("Preparing GRiSP code"),
+            {SystemFiles, DriverFiles} = rebar3_grisp_util:get_copy_list(Apps, Board, BuildRoot),
+            ToFrom = maps:merge(SystemFiles, DriverFiles),
+            console("* Copying C code..."),
+            maps:map(
+              fun(Target, Source) ->
+                      rebar_api:debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
+                      {ok, _} = file:copy(Source, Target)
+              end,
+              ToFrom
+             ),
+            patch_otp(BuildRoot, maps:keys(DriverFiles), Version),
 
+            info("Building"),
+            ErlXComp = "erl-xcomp-" ++ Version ++ ".conf",
+            ErlXCompPath = find_file(Apps, Board, ["xcomp", ErlXComp]),
+            BuildConfFile = config_file(Apps, Board, ["grisp.conf"]),
+            BuildConfig = rebar3_grisp_util:merge_config(Config, BuildConfFile),
+            build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, Opts, TcRoot),
+
+            info("Computing file hashes"),
+            % we need relative filenames, so we cannot reuse from above
+            {SystemFiles2, DriverFiles2} = rebar3_grisp_util:get_copy_list(Apps, Board, ""),
+            ToFrom2 = maps:merge(SystemFiles2, DriverFiles2),
+            {Hash, HashString} = rebar3_grisp_util:hash_grisp_files(ToFrom2),
+            info("Writing hashes to file. Hash: ~p", [Hash]),
+            file:write_file(filename:join(["InstallRoot", "filehashes_" ++ HashString]),
+                            list_to_binary(HashString)),
+            case rebar3_grisp_util:get(tar, Opts, false) of
+                true ->
+                    GrispFolder = rebar3_grisp_util:root(State),
+                    Tarball = filename:join([GrispFolder, rebar3_grisp_util:otp_cache_file_name(Version, Hash)]),
+                    info("Creating tar archive ~p", [Tarball]),
+                    sh("tar -zcf " ++
+                           Tarball ++
+                           %% " --exclude " ++ filename:join([InstallRoot, "erts-*", "{include, lib, src, man, doc}"]) ++
+                           %% " --exclude " ++ filename:join([InstallRoot, "usr", "*"]) ++
+                           %% " --exclude " ++ filename:join([InstallRoot, "bin", "{erl, start_erl, start, epmd"]) ++
+                           %% " --exclude " ++ filename:join([InstallRoot, "lib", "*", "{src, c_src, examples}"]) ++
+                           "  .", [{cd, InstallRoot}]);
+                false -> ok
+            end,
+
+            info("Done"),
+            {ok, State}
+    end.
 -spec format_error(any()) ->  iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
@@ -99,11 +145,6 @@ ensure_clone(URL, Dir, Version, Opts) ->
             ok
     end,
     ok.
-
-apps(State) ->
-    Apps = rebar_state:project_apps(State) ++ rebar_state:all_deps(State),
-    {Grisp, Other} = rebar3_grisp_util:grisp_app(Apps),
-    Other ++ Grisp.
 
 find_file(Apps, Board, PathParts) ->
     Path = filename:join(["grisp", Board | PathParts]),
@@ -142,55 +183,9 @@ config_file(Apps, Board, PathParts, DefaultConf) ->
     end,
     lists:foldl(FoldFun, DefaultConf, lists:reverse(Apps)).
 
-copy_code(Apps, Board, OTPRoot, Version) ->
-    console("* Copying C code..."),
-    Drivers = lists:foldl(
-        fun(A, D) ->
-            copy_app_code(A, Board, OTPRoot, D)
-        end,
-        [],
-         Apps
-    ),
-    patch_otp(OTPRoot, Drivers, Version).
-
-copy_app_code(App, Board, OTPRoot, Drivers) ->
-    Source = filename:join([rebar_app_info:dir(App), "grisp", Board]),
-    copy_sys(Source, OTPRoot),
-    Drivers ++ copy_drivers(Source, OTPRoot).
-
-copy_sys(Source, OTPRoot) ->
-    copy_files(
-        {Source, "sys/*.h"},
-        {OTPRoot, "erts/emulator/sys/unix"}
-    ),
-    copy_files(
-        {Source, "sys/*.c"},
-        {OTPRoot, "erts/emulator/sys/unix"}
-    ).
-
-copy_drivers(Source, OTPRoot) ->
-    copy_files(
-        {Source, "drivers/*.h"},
-        {OTPRoot, "erts/emulator/drivers/unix"}
-    ),
-    copy_files(
-        {Source, "drivers/*.c"},
-        {OTPRoot, "erts/emulator/drivers/unix"}
-    ).
-
-copy_files({SourceRoot, Pattern}, Target) ->
-    Files = filelib:wildcard(filename:join(SourceRoot, Pattern)),
-    [copy_file(F, Target) || F <- Files].
-
-copy_file(Source, {TargetRoot, TargetDir}) ->
-    Base = filename:basename(Source),
-    TargetFile = filename:join(TargetDir, Base),
-    Target = filename:join(TargetRoot, TargetFile),
-    rebar_api:debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
-    {ok, _} = file:copy(Source, Target),
-    TargetFile.
 
 patch_otp(OTPRoot, Drivers, Version) ->
+    rebar_api:debug("Patching OTP Version ~p", [Version]),
     TemplateFile = filename:join([
         code:priv_dir(rebar3_grisp),
         "patches/otp-" ++ Version ++ ".patch.mustache"
@@ -201,6 +196,7 @@ patch_otp(OTPRoot, Drivers, Version) ->
     end.
 
 apply_patch(TemplateFile, Drivers, OTPRoot) ->
+    rebar_api:debug("Using Template ~p", [TemplateFile]),
     Template = bbmustache:parse_file(TemplateFile),
     Context = [
         {erts_emulator_makefile_in, [
@@ -219,22 +215,12 @@ apply_patch(TemplateFile, Drivers, OTPRoot) ->
     end,
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
-build(Config, ErlXComp, BuildRoot, InstallRoot, Opts) ->
-    TcRoot = try
-        rebar3_grisp_util:get([toolchain, root], Config)
-    catch
-        error:{key_not_found, _, _} ->
-            abort(
-                "Tool chain root not configured in rebar.config:\n"
-                "\n"
-                "    {grisp, [{toolchain, [{root, \"/path/to/toolchain\"}]}]}",
-            [])
-    end,
+build(Config, ErlXComp, BuildRoot, InstallRoot, Opts, TcRoot) ->
     PATH = os:getenv("PATH"),
     AllOpts = [{env, [
-        {"GRISP_TC_ROOT", TcRoot},
-        {"PATH", TcRoot ++ "/bin:" ++ PATH}
-    ]}],
+                      {"GRISP_TC_ROOT", TcRoot},
+                      {"PATH", TcRoot ++ "/bin:" ++ PATH}
+                     ]}],
     BuildOpts = [{cd, BuildRoot}|AllOpts],
     InstallOpts = [{cd, InstallRoot}|AllOpts],
     rebar_api:debug("~p", [BuildOpts]),
@@ -244,13 +230,13 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, Opts) ->
             sh("./otp_build autoconf", BuildOpts),
             console("* Running configure...  (this may take a while)"),
             sh(
-                "./otp_build configure "
-                "--xcomp-conf=" ++ ErlXComp ++
-                " --prefix=/",
-                BuildOpts
-            );
+              "./otp_build configure "
+              "--xcomp-conf=" ++ ErlXComp ++
+                  " --prefix=/",
+              BuildOpts
+             );
         false ->
-            ok
+             ok
     end,
     console("* Compiling...  (this may take a while)"),
     sh("./otp_build boot -a", BuildOpts),
@@ -274,12 +260,12 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, Opts) ->
             Rx = "/erts-([.0-9]*)/bin/beam$",
             {match, [Ver]} = re:run(Beam, Rx, [{capture, all_but_first, list}]),
             ScriptOpts = [
-                {cd, InstallRoot},
-                {env, [
-                    {"PATH", TcRoot ++ "/bin:" ++ PATH},
-                    {"ERTS_VER", Ver},
-                    {"BEAM_PATH", Beam}
-                ]}
-            ],
+                          {cd, InstallRoot},
+                          {env, [
+                                 {"PATH", TcRoot ++ "/bin:" ++ PATH},
+                                 {"ERTS_VER", Ver},
+                                 {"BEAM_PATH", Beam}
+                                ]}
+                         ],
             sh(PostCmd, ScriptOpts)
     end.
