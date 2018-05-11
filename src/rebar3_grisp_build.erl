@@ -93,7 +93,7 @@ do(State) ->
             ToFrom2 = maps:merge(SystemFiles2, DriverFiles2),
             {Hash, HashString} = rebar3_grisp_util:hash_grisp_files(ToFrom2),
             info("Writing hashes to file. Hash: ~p", [Hash]),
-            file:write_file(filename:join(["InstallRoot", "filehashes_" ++ HashString]),
+            ok = file:write_file(filename:join([InstallRoot, "filehashes_" ++ Hash]),
                             list_to_binary(HashString)),
             case rebar3_grisp_util:get(tar, Opts, false) of
                 true ->

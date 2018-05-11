@@ -88,10 +88,13 @@ hash_grisp_files(ToFrom) ->
     FileHashes = lists:map(
                    fun({Target, Source}) ->
                            rebar_api:debug("Hashing ~p for location ~p", [Source, Target]),
-                           hash_file(Source, sha256, Target)
+                           {ok, Hash} = hash_file(Source, sha256, Target),
+                           {Target, Hash}
                    end,
                    Sorted
                   ),
+    rebar_api:debug("~p", [FileHashes]),
+
     HashString = hashes_to_string(FileHashes),
     %%TODO: write to file
     Hash = lists:flatten(format_hash(sha256, crypto:hash(sha256, HashString))),

@@ -309,7 +309,7 @@ download_and_unpack(Version, Hash, ETag) ->
         false -> abort("Could not obtain prebuilt OTP for your configuration. " ++
                            "This means either you are not connected to the internet, "++
                            "there is something wrong with our CDN, or you have modified "++
-                           "any of the C drivers. In any case please build your own toolchain" ++
+                           "any of the C drivers. In any case you can build your own toolchain " ++
                            "and OTP (using rebar3 grisp build), or try later.")
     end.
 
@@ -355,6 +355,5 @@ build_from_to_tree(State, Board, Subdir) ->
                                            fun(Dir) -> grisp_files(Dir, Board, Subdir) end,
                                            [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
                                           ),
-            maps:merge(GrispFiles, ProjectFiles);
-        {Newe, Strowo} -> abort("NEWE ~p ~n ~n Strowo ~p", [ Newe, Strowo])
+            maps:merge(GrispFiles, ProjectFiles)
     end.
