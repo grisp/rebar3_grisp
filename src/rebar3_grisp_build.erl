@@ -62,8 +62,8 @@ do(State) ->
                 error:{key_not_found, _, _} -> abort_no_toolchain()
             end,
 
-            BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
-            InstallRoot = rebar3_grisp_util:otp_install_root(State, Version, build),
+            BuildRoot = rebar3_grisp_util:otp_build__root(State, Version),
+            InstallRoot = rebar3_grisp_util:otp_build_install_root(State, Version),
             info("Checking out Erlang/OTP ~s", [Version]),
             ensure_clone(URL, BuildRoot, Version, Opts),
 

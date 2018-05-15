@@ -79,10 +79,10 @@ do(State) ->
                                            "application or you specified a wrong OTP version. " ++
                                            "Please build your own toolchain.")
             end,
-            InstallRoot = rebar3_grisp_util:otp_install_root(OTPVersion, Hash, prebuilt);
+            InstallRoot = rebar3_grisp_util:otp_cache_install_root(OTPVersion, Hash);
         true ->
             console("* Using custom OTP"),
-            InstallRoot = rebar3_grisp_util:otp_install_root(State, OTPVersion, build)
+            InstallRoot = rebar3_grisp_util:otp_cache_install_root(State, OTPVersion)
     end,
     InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
     check_otp_release(InstallRelVer),
@@ -327,21 +327,22 @@ move_file(From, To) ->
 maybe_unpack(Version, Hash, ETag) ->
     case should_unpack(Version, Hash, ETag) of
         yes ->
-            console("Extracting ~p to ~p", [rebar3_grisp_util:otp_cache_file(Version, Hash), rebar3_grisp_util:otp_install_root(Version, Hash, prebuilt)]),
+            OTPCacheInstallRoot = rebar3_grisp_util:otp_cache_install_root(Version, Hash),
+            console("Extracting ~p to ~p", [rebar3_grisp_util:otp_cache_file(Version, Hash), OTPCacheInstallRoot]),
             case erl_tar:extract(
                    rebar3_grisp_util:otp_cache_file(Version, Hash),
-                   [compressed, {cwd, rebar3_grisp_util:otp_install_root(Version, Hash, prebuilt)}])
+                   [compressed, {cwd, OTPCacheInstallRoot}])
             of
                 ok -> ok;
                 {error, Reason} -> abort("Tar extraction failed: ~p", [Reason])
             end,
-            ok = file:write_file(filename:join([rebar3_grisp_util:otp_install_root(Version, Hash, prebuilt), "ETag"]),
+            ok = file:write_file(filename:join([OTPCacheInstallRoot, "ETag"]),
                             list_to_binary("{etag, \"" ++ ETag ++ "\"}."));
         no -> console("Extracted archive not modified")
     end.
 
 should_unpack(Version, Hash, ETag) ->
-    case file:consult(filename:join([rebar3_grisp_util:otp_install_root(Version, Hash, prebuilt), "ETag"])) of
+    case file:consult(filename:join([rebar3_grisp_util:otp_cache_install_root(Version, Hash), "ETag"])) of
         {ok, [{etag, ETag}]} -> no; % not modified
         {error, enoent} -> yes;
         _Other  -> yes

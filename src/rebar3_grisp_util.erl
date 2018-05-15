@@ -23,7 +23,8 @@
 -export([otp_cache_file/2]).
 -export([otp_cache_file_temp/2]).
 -export([otp_cache_root/0]).
--export([otp_install_root/3]).
+-export([otp_cache_install_root/2]).
+-export([otp_build_install_root/2]).
 -export([otp_install_release_version/1]).
 -export([grisp_app/1]).
 -export([merge_config/2]).
@@ -125,9 +126,10 @@ root(State) ->
 otp_build_root(State, Version) ->
     filename:join([root(State), "otp", Version, "build"]).
 
-otp_install_root(State, Version, build) ->
-    filename:join([root(State), "otp", Version, "install"]);
-otp_install_root(Version, Hash, prebuilt) ->
+otp_build_install_root(State, Version) ->
+    filename:join([root(State), "otp", Version, "install"]).
+
+otp_cache_install_root(Version, Hash) ->
     filename:join([rebar_dir:home_dir(), ".cache", "grisp", "packages", "otp", "build", "grisp_otp_build_" ++ Version ++ "_" ++ Hash]).
 
 otp_install_release_version(InstallRoot) ->
