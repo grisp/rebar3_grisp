@@ -74,13 +74,13 @@ get(Key, Term, Default) ->
 
 get_copy_list(Apps, Board, OTPRoot) ->
     rebar_api:debug("Creating copy list for apps: ~p", [Apps]),
-    {_SystemFiles, _DriverFiles} = lists:foldl(
-                                     fun(A, {Sys, Drivers}) ->
-                                             collect_c_sources(A, Board, OTPRoot, Sys, Drivers)
-                                     end,
-                                     {#{}, #{}},
-                                     Apps
-                                    ).
+    lists:foldl(
+      fun(A, {Sys, Drivers}) ->
+              collect_c_sources(A, Board, OTPRoot, Sys, Drivers)
+      end,
+      {#{}, #{}},
+      Apps
+     ).
 
 hash_grisp_files(ToFrom) ->
     rebar_api:debug("Hashing ToFrom map: ~p", [ToFrom]),
