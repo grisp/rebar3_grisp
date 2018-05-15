@@ -99,7 +99,6 @@ do(State) ->
     run_script(post_script, State),
     {ok, State3}.
 
-
 -spec format_error(any()) ->  iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
@@ -260,7 +259,6 @@ get_arg_option(Arg, State, Fun) ->
 trim(String) ->
     re:replace(String, "(^[\s\n\t]+|[\s\n\t]+$)", "", [global, {return, list}]).
 
-
 obtain_prebuilt(Version, ExpectedHash) ->
     Tarball = rebar3_grisp_util:otp_cache_file(Version, ExpectedHash),
     case filelib:is_regular(Tarball) of
@@ -328,7 +326,8 @@ maybe_unpack(Version, Hash, ETag) ->
     case should_unpack(Version, Hash, ETag) of
         yes ->
             OTPCacheInstallRoot = rebar3_grisp_util:otp_cache_install_root(Version, Hash),
-            console("Extracting ~p to ~p", [rebar3_grisp_util:otp_cache_file(Version, Hash), OTPCacheInstallRoot]),
+            console("Extracting ~p to ~p",
+                    [rebar3_grisp_util:otp_cache_file(Version, Hash), OTPCacheInstallRoot]),
             case erl_tar:extract(
                    rebar3_grisp_util:otp_cache_file(Version, Hash),
                    [compressed, {cwd, OTPCacheInstallRoot}])

@@ -130,7 +130,9 @@ otp_build_install_root(State, Version) ->
     filename:join([root(State), "otp", Version, "install"]).
 
 otp_cache_install_root(Version, Hash) ->
-    filename:join([rebar_dir:home_dir(), ".cache", "grisp", "packages", "otp", "build", "grisp_otp_build_" ++ Version ++ "_" ++ Hash]).
+    filename:join([rebar_dir:home_dir(),
+                   ".cache", "grisp", "packages", "otp", "build", "grisp_otp_build_" ++
+                       Version ++ "_" ++ Hash]).
 
 otp_install_release_version(InstallRoot) ->
     ReleaseFile = filename:join([InstallRoot, "releases", "RELEASES"]),
@@ -175,7 +177,8 @@ should_build(Config) ->
 
 collect_c_sources(App, Board, OTPRoot, Sys, Drivers) ->
     Source = filename:join([rebar_app_info:dir(App), "grisp", Board]),
-    {maps:merge(Sys, collect_sys(Source, OTPRoot)),  maps:merge(Drivers, collect_drivers(Source, OTPRoot))}.
+    {maps:merge(Sys, collect_sys(Source, OTPRoot)),
+     maps:merge(Drivers, collect_drivers(Source, OTPRoot))}.
 
 collect_sys(Source, OTPRoot) ->
     maps:merge(

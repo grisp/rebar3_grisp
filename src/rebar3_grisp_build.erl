@@ -98,14 +98,11 @@ do(State) ->
             case rebar3_grisp_util:get(tar, Opts, false) of
                 true ->
                     GrispFolder = rebar3_grisp_util:root(State),
-                    Tarball = filename:join([GrispFolder, rebar3_grisp_util:otp_cache_file_name(Version, Hash)]),
+                    Tarball = filename:join([GrispFolder,
+                                             rebar3_grisp_util:otp_cache_file_name(Version, Hash)]),
                     info("Creating tar archive ~p", [Tarball]),
                     sh("tar -zcf " ++
                            Tarball ++
-                           %% " --exclude " ++ filename:join([InstallRoot, "erts-*", "{include, lib, src, man, doc}"]) ++
-                           %% " --exclude " ++ filename:join([InstallRoot, "usr", "*"]) ++
-                           %% " --exclude " ++ filename:join([InstallRoot, "bin", "{erl, start_erl, start, epmd"]) ++
-                           %% " --exclude " ++ filename:join([InstallRoot, "lib", "*", "{src, c_src, examples}"]) ++
                            "  .", [{cd, InstallRoot}]);
                 false -> ok
             end,
@@ -183,7 +180,6 @@ config_file(Apps, Board, PathParts, DefaultConf) ->
     end,
     lists:foldl(FoldFun, DefaultConf, lists:reverse(Apps)).
 
-
 patch_otp(OTPRoot, Drivers, Version) ->
     rebar_api:debug("Patching OTP Version ~p", [Version]),
     TemplateFile = filename:join([
@@ -236,7 +232,7 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, Opts, TcRoot) ->
               BuildOpts
              );
         false ->
-             ok
+            ok
     end,
     console("* Compiling...  (this may take a while)"),
     sh("./otp_build boot -a", BuildOpts),
