@@ -27,7 +27,7 @@
 -export([otp_install_release_version/1]).
 -export([grisp_app/1]).
 -export([merge_config/2]).
--export([toolchain_or_prebuilt/1]).
+-export([should_build/1]).
 
 -define(BLOCKSIZE, 4194304). % 4MB
 
@@ -160,17 +160,14 @@ merge_config(New, Old) ->
     merge_config_(rebar_utils:tup_umerge(New, Old), []).
 
 
-toolchain_or_prebuilt(Config) ->
+should_build(Config) ->
     try
-        TcRoot = get([build, toolchain, directory], Config),
-        console("* Using specified toolchain"),
-        TcRoot
+        get([build], Config),
+        true
     catch
         error:{key_not_found, _, _} ->
-            console("* Using prebuilt OTP"),
-            prebuilt
+            false
     end.
-
 
 %--- Internal ------------------------------------------------------------------
 

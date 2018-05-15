@@ -53,15 +53,15 @@ do(State) ->
 
     Apps = rebar3_grisp_util:apps(State),
 
-    BuildType = rebar3_grisp_util:toolchain_or_prebuilt(Config),
+    case rebar3_grisp_util:should_build(Config) of
+        false ->
+            abort_no_toolchain();
+        true ->
+            TcRoot = try rebar3_grisp_util:get([build, toolchain, directory], Config)
+            catch
+                error:{key_not_found, _, _} -> abort_no_toolchain()
+            end,
 
-    case BuildType of
-        prebuilt ->
-            abort("Please specify a build toolchain:~n" ++
-                  "{build, [~n" ++
-                  "{toolchain, [{directory, \"PATH/TO/TOOLCHAIN\"}]}~n" ++
-                 "]}~n");
-        TcRoot when is_list(TcRoot) ->
             BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
             InstallRoot = rebar3_grisp_util:otp_install_root(State, Version, build),
             info("Checking out Erlang/OTP ~s", [Version]),
@@ -269,3 +269,9 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, Opts, TcRoot) ->
                          ],
             sh(PostCmd, ScriptOpts)
     end.
+
+abort_no_toolchain() ->
+    abort("Please specify a build toolchain to build the cross compiled OTP release:~n" ++
+              "{build, [~n" ++
+              "{toolchain, [{directory, \"PATH/TO/TOOLCHAIN\"}]}~n" ++
+              "]}~n").

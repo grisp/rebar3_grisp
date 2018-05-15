@@ -61,8 +61,9 @@ do(State) ->
     Board = rebar3_grisp_util:get([board], Config, ?DEFAULT_GRISP_BOARD),
     Version = rebar3_grisp_util:get([otp, version], Config, ?DEFAULT_OTP_VSN),
 
-    case rebar3_grisp_util:toolchain_or_prebuilt(Config) of
-        prebuilt ->
+    case rebar3_grisp_util:shoud_build(Config) of
+        false ->
+            console("* Using prebuilt OTP"),
             info("Trying to obtain prebuilt OTP version"),
             Apps = rebar3_grisp_util:apps(State),
 
@@ -79,7 +80,8 @@ do(State) ->
                                            "Please build your own toolchain.")
             end,
             InstallRoot = rebar3_grisp_util:otp_install_root(OTPVersion, Hash, prebuilt);
-        Dir when is_list(Dir) ->
+        true ->
+            console("* Using custom OTP"),
             InstallRoot = rebar3_grisp_util:otp_install_root(State, OTPVersion, build)
     end,
     InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
