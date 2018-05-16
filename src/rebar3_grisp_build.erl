@@ -80,7 +80,7 @@ do(State) ->
             ErlXCompPath = find_file(Apps, Board, ["xcomp", ErlXComp]),
             BuildConfFile = config_file(Apps, Board, ["grisp.conf"]),
             BuildConfig = rebar3_grisp_util:merge_config(Config, BuildConfFile),
-            build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, Opts, TcRoot),
+            build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, TcRoot, Opts),
 
             info("Computing file hashes"),
             {Hash, HashString} = rebar3_grisp_util:get_hash(Apps, Board),
@@ -222,7 +222,7 @@ apply_patch(TemplateFile, Drivers, OTPRoot) ->
     end,
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
-build(Config, ErlXComp, BuildRoot, InstallRoot, Opts, TcRoot) ->
+build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
     PATH = os:getenv("PATH"),
     AllOpts = [{env, [
                       {"GRISP_TC_ROOT", TcRoot},
