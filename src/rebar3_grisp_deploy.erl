@@ -5,8 +5,6 @@
 -export([do/1]).
 -export([format_error/1]).
 
--include("rebar3_grisp.hrl").
-
 -import(rebar3_grisp_util, [
     info/1,
     info/2,
@@ -52,14 +50,11 @@ The command requires the release name and version to be provided.
 do(State) ->
     {Args, _} = rebar_state:command_parsed_args(State),
     info("~p", [Args]),
-    Config = rebar_state:get(State, grisp, []),
+    Config = rebar3_grisp_util:config(State),
     RelName = proplists:get_value(relname, Args),
     RelVsn = proplists:get_value(relvsn, Args),
-    OTPVersion = rebar3_grisp_util:get([otp, version], Config,
-        ?DEFAULT_OTP_VSN
-    ),
-    Board = rebar3_grisp_util:get([board], Config, ?DEFAULT_GRISP_BOARD),
-    Version = rebar3_grisp_util:get([otp, version], Config, ?DEFAULT_OTP_VSN),
+    OTPVersion = rebar3_grisp_util:otp_version(Config),
+    Board = rebar3_grisp_util:board(Config),
 
     case rebar3_grisp_util:shoud_build(Config) of
         false ->
@@ -67,12 +62,12 @@ do(State) ->
             info("Trying to obtain prebuilt OTP version"),
             Apps = rebar3_grisp_util:apps(State),
 
-            {SystemFiles, DriverFiles} = rebar3_grisp_util:merged_copy_destination(Apps, Board),
+            {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination_merged(Apps, Board),
             ToFrom = maps:merge(SystemFiles, DriverFiles),
             {Hash, _} = rebar3_grisp_util:hash_grisp_files(ToFrom),
 
-            info("Trying to obtain OTP ~p ~p", [Version, Hash]),
-            try obtain_prebuilt(Version, Hash)
+            info("Trying to obtain OTP ~p ~p", [OTPVersion, Hash]),
+            try obtain_prebuilt(OTPVersion, Hash)
             catch
                 error:nomatch -> abort("We don't have that version of OTP in our download archive. " ++
                                            "Either you modified some of the C files of the grisp OTP " ++
@@ -287,7 +282,7 @@ download_and_unpack(Version, Hash, ETag) ->
     {ok, InetsPid} = inets:start(httpc, [{profile, rebar3_grisp}], stand_alone),
     HTTPOptions = [{connect_timeout, 5000}],
     Options = [{stream, rebar3_grisp_util:otp_cache_file_temp(Version, Hash)}, {body_format, binary}],
-    Url = ?DOWNLOAD_CDN_URI ++ rebar3_grisp_util:otp_cache_file_name(Version, Hash),
+    Url = rebar3_grisp_util:cdn() ++ rebar3_grisp_util:otp_cache_file_name(Version, Hash),
     Headers = [{"If-None-Match", ETag}],
     Response = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
     rebar_api:debug("Trying to download to ~p", [rebar3_grisp_util:otp_cache_file_temp(Version, Hash)]),

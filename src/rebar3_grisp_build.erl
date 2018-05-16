@@ -5,7 +5,6 @@
 -export([do/1]).
 -export([format_error/1]).
 
--include("rebar3_grisp.hrl").
 -include_lib("kernel/include/file.hrl").
 
 -import(rebar3_grisp_util, [
@@ -46,10 +45,10 @@ init(State) ->
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(State) ->
     {Opts, _Rest} = rebar_state:command_parsed_args(State),
-    Config = rebar_state:get(State, grisp, []),
-    URL = "https://github.com/grisp/otp",
-    Board = rebar3_grisp_util:get([board], Config, ?DEFAULT_GRISP_BOARD),
-    Version = rebar3_grisp_util:get([otp, version], Config, ?DEFAULT_OTP_VSN),
+    Config = rebar3_grisp_util:config(State),
+    URL = rebar3_grisp_util:otp_git(),
+    Board = rebar3_grisp_util:board(Config),
+    Version = rebar3_grisp_util:otp_version(Config),
 
     Apps = rebar3_grisp_util:apps(State),
 

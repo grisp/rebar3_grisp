@@ -21,6 +21,11 @@
 -export([hash_file/2, hash_file/3]).
 -export([set/3]).
 -export([root/1]).
+-export([config/1]).
+-export([otp_version/1]).
+-export([otp_git/0]).
+-export([cdn/0]).
+-export([board/1]).
 -export([otp_build_root/2]).
 -export([otp_cache_file_name/2]).
 -export([otp_cache_file/2]).
@@ -35,6 +40,8 @@
 -export([should_build/1]).
 
 -define(BLOCKSIZE, 4194304). % 4MB
+
+-include("rebar3_grisp.hrl").
 
 %--- API -----------------------------------------------------------------------
 
@@ -141,6 +148,21 @@ set(Keys, Struct, Value) ->
 root(State) ->
     Root = rebar_dir:root_dir(State),
     filename:join(Root, "_grisp").
+
+config(State) ->
+    rebar_state:get(State, grisp, []).
+
+otp_version(Config) ->
+    get([otp, version], Config, ?DEFAULT_OTP_VSN).
+
+otp_git() ->
+    ?GIT_REMOTE_OTP.
+
+cdn() ->
+    ?DOWNLOAD_CDN_URI.
+
+board(Config) ->
+    get([board], Config, ?DEFAULT_GRISP_BOARD).
 
 otp_build_root(State, Version) ->
     filename:join([root(State), "otp", Version, "build"]).
