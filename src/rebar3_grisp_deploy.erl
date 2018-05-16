@@ -128,7 +128,7 @@ run_script(Name, State) ->
 
 copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
-    Tree = build_from_to_tree(State, Board, ""),
+    Tree = find_replacement_files(State, Board, ""),
     Context = [
         {release_name, RelName},
         {release_version, RelVsn},
@@ -142,7 +142,7 @@ copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
     ).
 
 %% Builds a map From => To, project's files replace grisp files,
-build_from_to_tree(State, Board, Subdir) ->
+find_replacement_files(State, Board, Subdir) ->
     AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
     case rebar3_grisp_util:grisp_app(AllApps) of
         {[], _} -> grisp_files(rebar_state:dir(State), Board, Subdir);
