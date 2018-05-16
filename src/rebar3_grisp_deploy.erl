@@ -55,26 +55,12 @@ do(State) ->
     RelVsn = proplists:get_value(relvsn, Args),
     OTPVersion = rebar3_grisp_util:otp_version(Config),
     Board = rebar3_grisp_util:board(Config),
+    Apps = rebar3_grisp_util:apps(State),
 
     case rebar3_grisp_util:shoud_build(Config) of
         false ->
-            console("* Using prebuilt OTP"),
-            info("Trying to obtain prebuilt OTP version"),
-            Apps = rebar3_grisp_util:apps(State),
-
-            {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination_merged(Apps, Board),
-            ToFrom = maps:merge(SystemFiles, DriverFiles),
-            {Hash, _} = rebar3_grisp_util:hash_grisp_files(ToFrom),
-
-            info("Trying to obtain OTP ~p ~p", [OTPVersion, Hash]),
-            try obtain_prebuilt(OTPVersion, Hash)
-            catch
-                error:nomatch -> abort("We don't have that version of OTP in our download archive. " ++
-                                           "Either you modified some of the C files of the grisp OTP " ++
-                                           "application or you specified a wrong OTP version. " ++
-                                           "Please build your own toolchain.")
-            end,
-            InstallRoot = rebar3_grisp_util:otp_cache_install_root(OTPVersion, Hash);
+            console("Using prebuilt OTP version"),
+            InstallRoot = try_get_package(Apps, Board, OTPVersion);
         true ->
             console("* Using custom OTP"),
             InstallRoot = rebar3_grisp_util:otp_cache_install_root(State, OTPVersion)
@@ -86,7 +72,7 @@ do(State) ->
     Dest = get_option(destination, [deploy, destination], State),
     info("Deploying ~s-~s to ~s", [RelName, RelVsn, Dest]),
     run_script(pre_script, State),
-                                                % FIXME: Resolve ERTS version
+    % FIXME: Resolve ERTS version
     ERTSPath = filelib:wildcard(filename:join(InstallRoot, "erts-*")),
     "erts-" ++ ERTSVsn = filename:basename(ERTSPath),
     copy_files(State3, RelName, RelVsn, Board, ERTSVsn, Dest, Force),
@@ -253,6 +239,18 @@ get_arg_option(Arg, State, Fun) ->
 
 trim(String) ->
     re:replace(String, "(^[\s\n\t]+|[\s\n\t]+$)", "", [global, {return, list}]).
+
+try_get_package(Apps, Board, OTPVersion) ->
+    {Hash, _HashString} = rebar3_grisp_util:get_hash(Apps, Board),
+    rebar3_api:debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
+    try obtain_prebuilt(OTPVersion, Hash)
+    catch
+        error:nomatch -> abort("We don't have that version of OTP in our download archive. " ++
+                                   "Either you modified some of the C files of the grisp OTP " ++
+                                   "application or you specified a wrong OTP version. " ++
+                                   "Please build your own toolchain.")
+    end,
+    rebar3_grisp_util:otp_cache_install_root(OTPVersion, Hash).
 
 obtain_prebuilt(Version, ExpectedHash) ->
     Tarball = rebar3_grisp_util:otp_cache_file(Version, ExpectedHash),
