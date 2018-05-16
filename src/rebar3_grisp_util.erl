@@ -85,7 +85,8 @@ files_copy_destination(Apps, Board) ->
      ).
 
 files_copy_destination_merged(Apps, Board) ->
-    maps:merge(files_copy_destination(Apps, Board)).
+    {DriverFiles, SystemFiles} = files_copy_destination(Apps, Board),
+    maps:merge(DriverFiles, SystemFiles).
 
 filenames_join_copy_destination(FromTo, Root) ->
     maps:fold(
@@ -195,11 +196,11 @@ collect_sys(Source) ->
     maps:merge(
       collect_files(
         {Source, "sys/*.h"},
-        {"erts/emulator/sys/unix"}
+        "erts/emulator/sys/unix"
        ),
       collect_files(
         {Source, "sys/*.c"},
-        {"erts/emulator/sys/unix"}
+        "erts/emulator/sys/unix"
        )
      ).
 
@@ -207,11 +208,11 @@ collect_drivers(Source) ->
     maps:merge(
       collect_files(
         {Source, "drivers/*.h"},
-        {"erts/emulator/drivers/unix"}
+        "erts/emulator/drivers/unix"
        ),
       collect_files(
         {Source, "drivers/*.c"},
-        {"erts/emulator/drivers/unix"}
+        "erts/emulator/drivers/unix"
        )
      ).
 
@@ -222,7 +223,7 @@ collect_files({SourceRoot, Pattern}, Target) ->
 
 collect_file(Source, TargetDir) ->
     Base = filename:basename(Source),
-    TargetFile = filename:join(TargetDir, Base),
+    TargetFile = filename:join([TargetDir, Base]),
     rebar_api:debug("Collecting Target ~p, Source ~p", [TargetFile, Source]),
     {TargetFile, Source}.
 
