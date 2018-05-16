@@ -64,22 +64,15 @@ do(State) ->
 
             BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
             InstallRoot = rebar3_grisp_util:otp_build_install_root(State, Version),
+            GrispFolder = rebar3_grisp_util:root(State),
+
             info("Checking out Erlang/OTP ~s", [Version]),
             ensure_clone(URL, BuildRoot, Version, Opts),
 
-            info("Preparing GRiSP code"),
-            {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board),
-            ToFrom = maps:merge(SystemFiles, DriverFiles),
-            ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom, BuildRoot),
-
             console("* Copying C code..."),
-            maps:map(
-              fun(Target, Source) ->
-                      rebar_api:debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
-                      {ok, _} = file:copy(Source, Target)
-              end,
-              ToFromAbsolute
-             ),
+            DriverFiles = copy_files(Apps, Board, BuildRoot),
+
+            console("* Patching OTP to include sys and driver files"),
             patch_otp(BuildRoot, maps:keys(DriverFiles), Version),
 
             info("Building"),
@@ -90,20 +83,16 @@ do(State) ->
             build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, Opts, TcRoot),
 
             info("Computing file hashes"),
-            ToFrom2 = rebar3_grisp_util:files_copy_destination_merged(Apps, Board),
-            {Hash, HashString} = rebar3_grisp_util:hash_grisp_files(ToFrom2),
+            {Hash, HashString} = rebar3_grisp_util:get_hash(Apps, Board),
+
             info("Writing hashes to file. Hash: ~p", [Hash]),
-            ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot, Hash),
+            ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot),
                             list_to_binary(HashString)),
             case rebar3_grisp_util:get(tar, Opts, false) of
                 true ->
-                    GrispFolder = rebar3_grisp_util:root(State),
-                    Tarball = filename:join([GrispFolder,
-                                             rebar3_grisp_util:otp_cache_file_name(Version, Hash)]),
-                    info("Creating tar archive ~p", [Tarball]),
-                    sh("tar -zcf " ++
-                           Tarball ++
-                           "  .", [{cd, InstallRoot}]);
+                    Filename = tar_file_name(GrispFolder, Version, Hash),
+                    info("Creating tar archive ~p", [Filename]),
+                    create_tar(Filename, InstallRoot);
                 false -> ok
             end,
 
@@ -115,6 +104,28 @@ format_error(Reason) ->
     io_lib:format("~p", [Reason]).
 
 %--- Internal ------------------------------------------------------------------
+
+copy_files(Apps, Board, BuildRoot) ->
+    {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board),
+    ToFrom = maps:merge(SystemFiles, DriverFiles),
+    ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom, BuildRoot),
+    maps:map(
+      fun(Target, Source) ->
+              rebar_api:debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
+              {ok, _} = file:copy(Source, Target)
+      end,
+      ToFromAbsolute
+     ),
+    DriverFiles.
+
+tar_file_name(GrispFolder, Version, Hash) ->
+    filename:join([GrispFolder, "otp", Version, "package",
+                   rebar3_grisp_util:otp_cache_file_name(Version, Hash)]).
+
+create_tar(Filename, InstallRoot) ->
+    sh("tar -zcf " ++
+           Filename ++
+           "  .", [{cd, InstallRoot}]).
 
 ensure_clone(URL, Dir, Version, Opts) ->
     Branch = "grisp/OTP-" ++ Version,

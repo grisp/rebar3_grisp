@@ -16,6 +16,7 @@
 -export([files_copy_destination/2]).
 -export([files_copy_destination_merged/2]).
 -export([filenames_join_copy_destination/2]).
+-export([get_hash/2]).
 -export([hash_grisp_files/1]).
 -export([hash_file/2, hash_file/3]).
 -export([set/3]).
@@ -28,7 +29,7 @@
 -export([otp_cache_install_root/2]).
 -export([otp_build_install_root/2]).
 -export([otp_install_release_version/1]).
--export([otp_hash_listing_path/2]).
+-export([otp_hash_listing_path/1]).
 -export([grisp_app/1]).
 -export([merge_config/2]).
 -export([should_build/1]).
@@ -95,6 +96,10 @@ filenames_join_copy_destination(FromTo, Root) ->
               maps:put(filename:join([Root, Target]), Source, AccFromTo)
       end,
       #{}, FromTo).
+
+get_hash(Apps, Board) ->
+    ToFrom2 = files_copy_destination_merged(Apps, Board),
+    hash_grisp_files(ToFrom2).
 
 hash_grisp_files(ToFrom) ->
     rebar_api:debug("Hashing ToFrom map: ~p", [ToFrom]),
@@ -167,7 +172,7 @@ otp_cache_file(Version, Hash) ->
 otp_cache_file_temp(Version, Hash) ->
     otp_cache_file(Version, Hash) ++ ".temp".
 
-otp_hash_listing_path(InstallRoot, Hash) ->
+otp_hash_listing_path(InstallRoot) ->
     filename:join([InstallRoot, "GRISP_PACKAGE_FILES"]).
 
 grisp_app(Apps) ->
