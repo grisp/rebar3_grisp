@@ -141,6 +141,19 @@ copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
         Tree
     ).
 
+%% Builds a map From => To, project's files replace grisp files,
+build_from_to_tree(State, Board, Subdir) ->
+    AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
+    case rebar3_grisp_util:grisp_app(AllApps) of
+        {[], _} -> grisp_files(rebar_state:dir(State), Board, Subdir);
+        {[Grisp], _} ->
+            [GrispFiles, ProjectFiles] = lists:map(
+                                           fun(Dir) -> grisp_files(Dir, Board, Subdir) end,
+                                           [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
+                                          ),
+            maps:merge(GrispFiles, ProjectFiles)
+    end.
+
 grisp_files(Dir, Board, Subdir) ->
     Path = filename:join([Dir, "grisp", Board, Subdir]),
     resolve_files(find_files(Path), Path).
@@ -338,17 +351,4 @@ should_unpack(Version, Hash, ETag) ->
         {ok, [{etag, ETag}]} -> no; % not modified
         {error, enoent} -> yes;
         _Other  -> yes
-    end.
-
-% Builds a map From => To, project's files replace grisp files,
-build_from_to_tree(State, Board, Subdir) ->
-    AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
-    case rebar3_grisp_util:grisp_app(AllApps) of
-        {[], _} -> grisp_files(rebar_state:dir(State), Board, Subdir);
-        {[Grisp], _} ->
-            [GrispFiles, ProjectFiles] = lists:map(
-                                           fun(Dir) -> grisp_files(Dir, Board, Subdir) end,
-                                           [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
-                                          ),
-            maps:merge(GrispFiles, ProjectFiles)
     end.
