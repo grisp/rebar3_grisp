@@ -28,6 +28,7 @@
 -export([otp_cache_install_root/2]).
 -export([otp_build_install_root/2]).
 -export([otp_install_release_version/1]).
+-export([otp_hash_listing_path/2]).
 -export([grisp_app/1]).
 -export([merge_config/2]).
 -export([should_build/1]).
@@ -165,6 +166,9 @@ otp_cache_file(Version, Hash) ->
 
 otp_cache_file_temp(Version, Hash) ->
     otp_cache_file(Version, Hash) ++ ".temp".
+
+otp_hash_listing_path(InstallRoot, Hash) ->
+    filename:join([InstallRoot, "GRISP_PACKAGE_FILES"]).
 
 grisp_app(Apps) ->
     UApps = lists:usort(Apps),

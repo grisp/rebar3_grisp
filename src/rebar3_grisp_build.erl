@@ -93,7 +93,7 @@ do(State) ->
             ToFrom2 = rebar3_grisp_util:files_copy_destination_merged(Apps, Board),
             {Hash, HashString} = rebar3_grisp_util:hash_grisp_files(ToFrom2),
             info("Writing hashes to file. Hash: ~p", [Hash]),
-            ok = file:write_file(filename:join([InstallRoot, "filehashes_" ++ Hash]),
+            ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot, Hash),
                             list_to_binary(HashString)),
             case rebar3_grisp_util:get(tar, Opts, false) of
                 true ->
