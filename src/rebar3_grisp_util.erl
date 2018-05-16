@@ -10,7 +10,6 @@
 -export([abort/2]).
 -export([sh/1]).
 -export([sh/2]).
--export([format_hash/1, format_hash/2]).
 -export([get/2]).
 -export([get/3]).
 -export([files_copy_destination/2]).
@@ -18,7 +17,6 @@
 -export([filenames_join_copy_destination/2]).
 -export([get_hash/2]).
 -export([hash_grisp_files/1]).
--export([hash_file/2, hash_file/3]).
 -export([set/3]).
 -export([root/1]).
 -export([config/1]).
@@ -65,16 +63,6 @@ sh(Command) -> sh(Command, []).
 sh(Command, Args) ->
     rebar_utils:sh(Command, Args ++ [abort_on_error]).
 
-format_hash(sha256, Hash) when is_binary(Hash) ->
-    <<Int:256/big-unsigned-integer>> = Hash,
-    format_hash(Int);
-format_hash(md5, Hash) when is_binary(Hash) ->
-    <<Int:128/big-unsigned-integer>> = Hash,
-    format_hash(Int).
-
-format_hash(Int) when is_integer(Int) ->
-    io_lib:format("~.16B", [Int]).
-
 get(Keys, Term) when is_list(Keys) ->
     deep_get(Keys, Term, fun() -> error({key_not_found, Keys, Term}) end);
 get(Key, Term) ->
@@ -117,7 +105,7 @@ hash_grisp_files(ToFrom) ->
     FileHashes = lists:map(
                    fun({Target, Source}) ->
                            rebar_api:debug("Hashing ~p for location ~p", [Source, Target]),
-                           {ok, Hash} = hash_file(Source, sha256, Target),
+                           {ok, Hash} = hash_file(Source, sha256),
                            {Target, Hash}
                    end,
                    Sorted
@@ -125,20 +113,8 @@ hash_grisp_files(ToFrom) ->
     rebar_api:debug("~p", [FileHashes]),
 
     HashString = hashes_to_string(FileHashes),
-    %%TODO: write to file
     Hash = lists:flatten(format_hash(sha256, crypto:hash(sha256, HashString))),
     {Hash, HashString}.
-
-hash_file(File, Algorithm, Name) ->
-    CryptoHandle = crypto:hash_init(Algorithm),
-    HashHandle = crypto:hash_update(CryptoHandle, list_to_binary(Name)),
-    case file:open(File, [binary, raw, read]) of
-        {ok, FileHandle} -> hash_file_read(FileHandle, HashHandle);
-        Error -> Error
-    end.
-
-hash_file(File, Algorithm) ->
-    hash_file(File, Algorithm, "").
 
 set(Keys, Struct, Value) ->
     update(Keys, Struct, fun
@@ -298,11 +274,12 @@ deep_update([Key|Keys], Struct, Fun) when is_map(Struct) ->
 deep_update([], Struct, Fun) ->
     Fun([], Struct).
 
-hashes_to_string(Hashes) ->
-    lists:map(
-      fun({Target, Hash}) ->
-              io_lib:format("~s ~s~n", [Target, format_hash(sha256, Hash)]) end,
-      Hashes).
+hash_file(File, Algorithm) ->
+    CryptoHandle = crypto:hash_init(Algorithm),
+    case file:open(File, [binary, raw, read]) of
+        {ok, FileHandle} -> hash_file_read(FileHandle, CryptoHandle);
+        Error -> Error
+    end.
 
 hash_file_read(FileHandle, HashHandle) ->
     case file:read(FileHandle, ?BLOCKSIZE) of
@@ -311,6 +288,22 @@ hash_file_read(FileHandle, HashHandle) ->
             file:close(FileHandle),
             {ok, crypto:hash_final(HashHandle)}
     end.
+
+hashes_to_string(Hashes) ->
+    lists:map(
+      fun({Target, Hash}) ->
+              io_lib:format("~s ~s~n", [Target, format_hash(sha256, Hash)]) end,
+      Hashes).
+
+format_hash(sha256, Hash) when is_binary(Hash) ->
+    <<Int:256/big-unsigned-integer>> = Hash,
+    format_hash(Int);
+format_hash(md5, Hash) when is_binary(Hash) ->
+    <<Int:128/big-unsigned-integer>> = Hash,
+    format_hash(Int).
+
+format_hash(Int) when is_integer(Int) ->
+    io_lib:format("~.16B", [Int]).
 
 merge_config_([], Acc) -> lists:reverse(Acc);
 merge_config_([{Key, []}, {Key, [{_, _}|_] = Val} | Rest], Acc) ->
