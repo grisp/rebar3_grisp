@@ -122,6 +122,7 @@ tar_file_name(GrispFolder, Version, Hash) ->
                    rebar3_grisp_util:otp_cache_file_name(Version, Hash)]).
 
 create_tar(Filename, InstallRoot) ->
+    rebar3_grisp_util:ensure_dir(Filename),
     sh("tar -zcf " ++
            Filename ++
            "  .", [{cd, InstallRoot}]).
@@ -247,7 +248,7 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
     console("* Compiling...  (this may take a while)"),
     sh("./otp_build boot -a", BuildOpts),
     console("* Installing..."),
-    ok = filelib:ensure_dir(filename:join(InstallRoot, ".")),
+    rebar3_grisp_util:ensure_dir(filename:join(InstallRoot, ".")),
     sh("rm -rf " ++ InstallRoot ++ "/*", InstallOpts),
     sh("make install DESTDIR=\"" ++ InstallRoot ++ "\"", BuildOpts),
     sh("mv lib lib.old", InstallOpts),

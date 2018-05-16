@@ -32,12 +32,14 @@
 -export([otp_cache_file_temp/2]).
 -export([otp_cache_root/0]).
 -export([otp_cache_install_root/2]).
+-export([otp_cache_install_etag/2]).
 -export([otp_build_install_root/2]).
 -export([otp_install_release_version/1]).
 -export([otp_hash_listing_path/1]).
 -export([grisp_app/1]).
 -export([merge_config/2]).
 -export([should_build/1]).
+-export([ensure_dir/1]).
 
 -define(BLOCKSIZE, 4194304). % 4MB
 
@@ -47,7 +49,7 @@
 
 apps(State) ->
     Apps = rebar_state:project_apps(State) ++ rebar_state:all_deps(State),
-    {Grisp, Other} = rebar3_grisp_util:grisp_app(Apps),
+    {Grisp, Other} = grisp_app(Apps),
     Other ++ Grisp.
 
 info(Msg) -> info(Msg, []).
@@ -175,6 +177,11 @@ otp_cache_install_root(Version, Hash) ->
                    ".cache", "grisp", "packages", "otp", "build", "grisp_otp_build_" ++
                        Version ++ "_" ++ Hash]).
 
+otp_cache_install_etag(Version, Hash) ->
+    {ok, [{etag, ETag}]} = file:consult(
+      filename:join([otp_cache_install_root(Version, Hash), "ETag"])),
+     ETag.
+
 otp_install_release_version(InstallRoot) ->
     ReleaseFile = filename:join([InstallRoot, "releases", "RELEASES"]),
     case file:consult(ReleaseFile) of
@@ -214,6 +221,12 @@ should_build(Config) ->
     catch
         error:{key_not_found, _, _} ->
             false
+    end.
+
+ensure_dir(File) ->
+    case filelib:ensure_dir(File) of
+        ok    -> ok;
+        Error -> abort("Could not create target directory: ~p", [Error])
     end.
 
 %--- Internal ------------------------------------------------------------------

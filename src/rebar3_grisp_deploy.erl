@@ -57,13 +57,13 @@ do(State) ->
     Board = rebar3_grisp_util:board(Config),
     Apps = rebar3_grisp_util:apps(State),
 
-    case rebar3_grisp_util:shoud_build(Config) of
+    case rebar3_grisp_util:should_build(Config) of
         false ->
             console("Using prebuilt OTP version"),
             InstallRoot = try_get_package(Apps, Board, OTPVersion);
         true ->
             console("* Using custom OTP"),
-            InstallRoot = rebar3_grisp_util:otp_cache_install_root(State, OTPVersion)
+            InstallRoot = rebar3_grisp_util:otp_build_install_root(State, OTPVersion)
     end,
     InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
     check_otp_release(InstallRelVer),
@@ -164,7 +164,7 @@ write_file(Dest, Target, Source, Force, Context) ->
     Content = load_file(Source, Context),
     force_execute(Path, Force,
         fun(F) ->
-            ensure_dir(F),
+            rebar3_grisp_util:ensure_dir(F),
             ok = file:write_file(F, Content)
         end
     ).
@@ -211,7 +211,7 @@ copy_release(State, Name, _Version, Dest, Force) ->
         true  -> "cp -Rf";
         false -> "cp -R"
     end,
-    ensure_dir(Target),
+    rebar3_grisp_util:ensure_dir(Target),
     sh(string:join([Command, Source ++ "/", Target], " ")).
 
 force_execute(File, Force, Fun) ->
@@ -225,12 +225,6 @@ force_execute(File, Force, Fun) ->
             ok
     end,
     Fun(File).
-
-ensure_dir(File) ->
-    case filelib:ensure_dir(File) of
-        ok    -> ok;
-        Error -> abort("Could not create target directory: ~p", [Error])
-    end.
 
 get_option(Arg, ConfigKey, State) ->
     get_arg_option(Arg, State, fun(Config) ->
@@ -255,7 +249,7 @@ trim(String) ->
 
 try_get_package(Apps, Board, OTPVersion) ->
     {Hash, _HashString} = rebar3_grisp_util:get_hash(Apps, Board),
-    rebar3_api:debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
+    rebar_api:debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
     try obtain_prebuilt(OTPVersion, Hash)
     catch
         error:nomatch -> abort("We don't have that version of OTP in our download archive. " ++
@@ -269,55 +263,100 @@ obtain_prebuilt(Version, ExpectedHash) ->
     Tarball = rebar3_grisp_util:otp_cache_file(Version, ExpectedHash),
     case filelib:is_regular(Tarball) of
         true ->
-            ETag = get_etag(Tarball),
+            ETag = rebar3_grisp_util:otp_cache_install_etag(Version, ExpectedHash),
             rebar_api:debug("Found file with ETag ~p", [ETag]),
             download_and_unpack(Version, ExpectedHash, ETag);
         false ->
-            download_and_unpack(Version, ExpectedHash, "NULL")
-    end.
-
-get_etag(Tarball) ->
-    case rebar3_grisp_util:hash_file(Tarball, md5) of
-        {ok, Hash} -> string:to_lower(lists:flatten(rebar3_grisp_util:format_hash(md5, Hash)));
-        {error, enoent} -> not_found
+            download_and_unpack(Version, ExpectedHash, false)
     end.
 
 download_and_unpack(Version, Hash, ETag) ->
-    filelib:ensure_dir(rebar3_grisp_util:otp_cache_file(Version, Hash)),
+    rebar3_grisp_util:ensure_dir(rebar3_grisp_util:otp_cache_file(Version, Hash)),
     case file:delete(rebar3_grisp_util:otp_cache_file_temp(Version, Hash)) of
         ok -> ok;
         {error, enoent} -> ok;
         {error, FileReason} -> abort("Error ~p", [FileReason])
     end,
-    ssl:start(),
-    {ok, InetsPid} = inets:start(httpc, [{profile, rebar3_grisp}], stand_alone),
-    HTTPOptions = [{connect_timeout, 5000}],
-    Options = [{stream, rebar3_grisp_util:otp_cache_file_temp(Version, Hash)}, {body_format, binary}],
-    Url = rebar3_grisp_util:cdn() ++ rebar3_grisp_util:otp_cache_file_name(Version, Hash),
-    Headers = [{"If-None-Match", ETag}],
-    Response = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
-    rebar_api:debug("Trying to download to ~p", [rebar3_grisp_util:otp_cache_file_temp(Version, Hash)]),
-    case Response of
-        {ok, {{_HTTPVersion, 304, "Not Modified"}, _OtherHeaders, _Body}} ->
-            console("File not modified on server");
-        {ok, saved_to_file} ->
-            move_file(rebar3_grisp_util:otp_cache_file_temp(Version, Hash),
-                      rebar3_grisp_util:otp_cache_file(Version, Hash));
-        {ok, {{_HTTPVersion, 404, "Not Found"}, _, _}} ->
-            console("Got  HTTP/1.1 404 Not Found. We don't have an archive for you yet");
-        {ok, Other} ->
-            console("Unexpected HTTP reply: ~p, Trying to use cached file~n", [Other]);
-        {error, ResponseReason} ->
-            console("HTTP or Network error. Trying to use local cache: ~p~n", [ResponseReason])
+    case try_download(Version, Hash, ETag) of
+        {etag, ETag2} -> ETag2;
+        _Other -> ETag2 = ""
     end,
+
     case filelib:is_regular(rebar3_grisp_util:otp_cache_file(Version, Hash)) of
-        true -> maybe_unpack(Version, Hash, ETag);
+        true -> maybe_unpack(Version, Hash, ETag2);
         false -> abort("Could not obtain prebuilt OTP for your configuration. " ++
                            "This means either you are not connected to the internet, "++
                            "there is something wrong with our CDN, or you have modified "++
                            "any of the C drivers. In any case you can build your own toolchain " ++
                            "and OTP (using rebar3 grisp build), or try later.")
     end.
+
+try_download(Version, Hash, ETag) ->
+    ssl:start(),
+    {ok, InetsPid} = inets:start(httpc, [{profile, rebar3_grisp}], stand_alone),
+    HTTPOptions = [{connect_timeout, 5000}],
+    Options = [{stream, self},
+               {body_format, binary}, {sync, false}],
+    Url = rebar3_grisp_util:cdn() ++ rebar3_grisp_util:otp_cache_file_name(Version, Hash),
+    Filename = rebar3_grisp_util:otp_cache_file_temp(Version, Hash),
+    case ETag of
+        false -> Headers = [];
+        _ -> Headers = [{"If-None-Match", ETag}]
+    end,
+    {ok, RequestId} = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
+    rebar_api:debug("Trying to download to ~p", [Filename]),
+    download_loop(Filename, RequestId, Version, Hash, ETag).
+
+
+download_loop(Filename, RequestId, Version, Hash, ETag) ->
+    download_loop(Filename, RequestId, Version, Hash, false, ETag).
+
+download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
+    receive
+        {http, {RequestId, stream_start, _Headers}} ->
+            rebar_api:debug("Starting download", []),
+            NewFileHandler = start_download(Filename),
+            download_loop(Filename, RequestId, Version, Hash, NewFileHandler, ETag);
+        {http, {RequestId, stream, BinBodyPart}} ->
+            download_chunk(FileHandler, BinBodyPart),
+            download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
+        {http, {RequestId, stream_end, Headers}} ->
+            rebar_api:debug("Stream ended", []),
+            case lists:keyfind("etag", 1, Headers) of
+                {"etag", ETag2} ->
+                    %% Remove escape sequences from string
+                    ETag3 = lists:filter(fun ($\\) -> false;
+                                             ($") -> false;
+                                             (_Any) -> true
+                                         end, ETag2),
+                    rebar_api:debug("Downloaded file with ETag ~p", [ETag3]),
+                    finalize_download(FileHandler, Version, Hash, ETag3);
+                false ->
+                    finalize_download(FileHandler, Version, Hash, ETag)
+            end;
+        {http, {RequestId, {{_HTTPVersion, 304, "Not Modified"}, _Headers, _Body}}} ->
+            console("Cached file up to date"),
+            {etag, ETag};
+        Other ->
+            console("Download error, cecking for cached file"),
+            rebar_api:debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
+            {etag, ETag}
+    after
+        120000 -> abort("Download timeout")
+    end.
+
+start_download(Filename) ->
+    {ok, Handler} = file:open(Filename, [append, raw, binary]),
+    Handler.
+
+download_chunk(FileHandle, Bin) ->
+    ok = file:write(FileHandle, Bin).
+
+finalize_download(FileHandler, Version, Hash, ETag) ->
+    ok = file:close(FileHandler),
+    move_file(rebar3_grisp_util:otp_cache_file_temp(Version, Hash),
+              rebar3_grisp_util:otp_cache_file(Version, Hash)),
+    {etag, ETag}.
 
 move_file(From, To) ->
     case file:delete(To) of
@@ -341,14 +380,19 @@ maybe_unpack(Version, Hash, ETag) ->
                 ok -> ok;
                 {error, Reason} -> abort("Tar extraction failed: ~p", [Reason])
             end,
-            ok = file:write_file(filename:join([OTPCacheInstallRoot, "ETag"]),
-                            list_to_binary("{etag, \"" ++ ETag ++ "\"}."));
+            if
+                is_list(ETag) ->
+                    ok = file:write_file(filename:join([OTPCacheInstallRoot, "ETag"]),
+                                         list_to_binary("{etag, \"" ++ ETag ++ "\"}."));
+                true -> ok
+            end;
         no -> console("Extracted archive not modified")
     end.
 
 should_unpack(Version, Hash, ETag) ->
+    rebar_api:debug("Checking for ETag ~p", [ETag]),
     case file:consult(filename:join([rebar3_grisp_util:otp_cache_install_root(Version, Hash), "ETag"])) of
-        {ok, [{etag, ETag}]} -> no; % not modified
         {error, enoent} -> yes;
+        {ok, [{etag, ETag}]} -> no; % not modified
         _Other  -> yes
     end.
