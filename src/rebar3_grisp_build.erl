@@ -62,21 +62,23 @@ do(State) ->
                 error:{key_not_found, _, _} -> abort_no_toolchain()
             end,
 
-            BuildRoot = rebar3_grisp_util:otp_build__root(State, Version),
+            BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
             InstallRoot = rebar3_grisp_util:otp_build_install_root(State, Version),
             info("Checking out Erlang/OTP ~s", [Version]),
             ensure_clone(URL, BuildRoot, Version, Opts),
 
             info("Preparing GRiSP code"),
-            {SystemFiles, DriverFiles} = rebar3_grisp_util:get_copy_list(Apps, Board, BuildRoot),
+            {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board),
             ToFrom = maps:merge(SystemFiles, DriverFiles),
+            ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom, BuildRoot),
+
             console("* Copying C code..."),
             maps:map(
               fun(Target, Source) ->
                       rebar_api:debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
                       {ok, _} = file:copy(Source, Target)
               end,
-              ToFrom
+              ToFromAbsolute
              ),
             patch_otp(BuildRoot, maps:keys(DriverFiles), Version),
 
@@ -88,9 +90,7 @@ do(State) ->
             build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, Opts, TcRoot),
 
             info("Computing file hashes"),
-            % we need relative filenames, so we cannot reuse from above
-            {SystemFiles2, DriverFiles2} = rebar3_grisp_util:get_copy_list(Apps, Board, ""),
-            ToFrom2 = maps:merge(SystemFiles2, DriverFiles2),
+            ToFrom2 = rebar3_grisp_util:files_copy_destination_merged(Apps, Board),
             {Hash, HashString} = rebar3_grisp_util:hash_grisp_files(ToFrom2),
             info("Writing hashes to file. Hash: ~p", [Hash]),
             ok = file:write_file(filename:join([InstallRoot, "filehashes_" ++ Hash]),

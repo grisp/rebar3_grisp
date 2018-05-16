@@ -67,7 +67,7 @@ do(State) ->
             info("Trying to obtain prebuilt OTP version"),
             Apps = rebar3_grisp_util:apps(State),
 
-            {SystemFiles, DriverFiles} = rebar3_grisp_util:get_copy_list(Apps, Board, ""),
+            {SystemFiles, DriverFiles} = rebar3_grisp_util:merged_copy_destination(Apps, Board),
             ToFrom = maps:merge(SystemFiles, DriverFiles),
             {Hash, _} = rebar3_grisp_util:hash_grisp_files(ToFrom),
 

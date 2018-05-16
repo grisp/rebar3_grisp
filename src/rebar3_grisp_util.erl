@@ -13,7 +13,9 @@
 -export([format_hash/1, format_hash/2]).
 -export([get/2]).
 -export([get/3]).
--export([get_copy_list/3]).
+-export([files_copy_destination/2]).
+-export([files_copy_destination_merged/2]).
+-export([filenames_join_copy_destination/2]).
 -export([hash_grisp_files/1]).
 -export([hash_file/2, hash_file/3]).
 -export([set/3]).
@@ -72,15 +74,25 @@ get(Keys, Term, Default) when is_list(Keys) ->
 get(Key, Term, Default) ->
     get([Key], Term, Default).
 
-get_copy_list(Apps, Board, OTPRoot) ->
+files_copy_destination(Apps, Board) ->
     rebar_api:debug("Creating copy list for apps: ~p", [Apps]),
     lists:foldl(
       fun(A, {Sys, Drivers}) ->
-              collect_c_sources(A, Board, OTPRoot, Sys, Drivers)
+              collect_c_sources(A, Board, Sys, Drivers)
       end,
       {#{}, #{}},
       Apps
      ).
+
+files_copy_destination_merged(Apps, Board) ->
+    maps:merge(files_copy_destination(Apps, Board)).
+
+filenames_join_copy_destination(FromTo, Root) ->
+    maps:fold(
+      fun(Target, Source, AccFromTo) ->
+              maps:put(filename:join([Root, Target]), Source, AccFromTo)
+      end,
+      #{}, FromTo).
 
 hash_grisp_files(ToFrom) ->
     rebar_api:debug("Hashing ToFrom map: ~p", [ToFrom]),
@@ -163,7 +175,6 @@ grisp_app(Apps) ->
 merge_config(New, Old) ->
     merge_config_(rebar_utils:tup_umerge(New, Old), []).
 
-
 should_build(Config) ->
     try
         get([build], Config),
@@ -175,32 +186,32 @@ should_build(Config) ->
 
 %--- Internal ------------------------------------------------------------------
 
-collect_c_sources(App, Board, OTPRoot, Sys, Drivers) ->
+collect_c_sources(App, Board, Sys, Drivers) ->
     Source = filename:join([rebar_app_info:dir(App), "grisp", Board]),
-    {maps:merge(Sys, collect_sys(Source, OTPRoot)),
-     maps:merge(Drivers, collect_drivers(Source, OTPRoot))}.
+    {maps:merge(Sys, collect_sys(Source)),
+     maps:merge(Drivers, collect_drivers(Source))}.
 
-collect_sys(Source, OTPRoot) ->
+collect_sys(Source) ->
     maps:merge(
       collect_files(
         {Source, "sys/*.h"},
-        {OTPRoot, "erts/emulator/sys/unix"}
+        {"erts/emulator/sys/unix"}
        ),
       collect_files(
         {Source, "sys/*.c"},
-        {OTPRoot, "erts/emulator/sys/unix"}
+        {"erts/emulator/sys/unix"}
        )
      ).
 
-collect_drivers(Source, OTPRoot) ->
+collect_drivers(Source) ->
     maps:merge(
       collect_files(
         {Source, "drivers/*.h"},
-        {OTPRoot, "erts/emulator/drivers/unix"}
+        {"erts/emulator/drivers/unix"}
        ),
       collect_files(
         {Source, "drivers/*.c"},
-        {OTPRoot, "erts/emulator/drivers/unix"}
+        {"erts/emulator/drivers/unix"}
        )
      ).
 
@@ -209,12 +220,11 @@ collect_files({SourceRoot, Pattern}, Target) ->
     Files = filelib:wildcard(filename:join(SourceRoot, Pattern)),
     maps:from_list([collect_file(F, Target) || F <- Files]).
 
-collect_file(Source, {TargetRoot, TargetDir}) ->
+collect_file(Source, TargetDir) ->
     Base = filename:basename(Source),
     TargetFile = filename:join(TargetDir, Base),
-    Target = filename:join(TargetRoot, TargetFile),
-    rebar_api:debug("Collecting Target ~p, Source ~p", [Target, Source]),
-    {Target, Source}.
+    rebar_api:debug("Collecting Target ~p, Source ~p", [TargetFile, Source]),
+    {TargetFile, Source}.
 
 deep_get([], Value, _Default) ->
     Value;
