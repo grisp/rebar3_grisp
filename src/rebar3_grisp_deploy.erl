@@ -128,7 +128,7 @@ run_script(Name, State) ->
 
 copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
-    Tree = find_replacement_files(State, Board, ""),
+    Tree = find_replacement_files(State, Board, "files"),
     Context = [
         {release_name, RelName},
         {release_version, RelVsn},
