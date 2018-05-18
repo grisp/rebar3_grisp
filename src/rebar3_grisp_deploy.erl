@@ -304,7 +304,7 @@ try_download(Version, Hash, ETag) ->
         _ -> Headers = [{"If-None-Match", ETag}]
     end,
     {ok, RequestId} = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
-    rebar_api:debug("Trying to download to ~p", [Filename]),
+    console("* Trying to download to ~p", [Filename]),
     download_loop(Filename, RequestId, Version, Hash, ETag).
 
 
@@ -330,10 +330,10 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
                     finalize_download(FileHandler, Version, Hash, ETag)
             end;
         {http, {RequestId, {{_HTTPVersion, 304, "Not Modified"}, _Headers, _Body}}} ->
-            console("Cached file up to date"),
+            console("* Cached file is up to date"),
             {etag, ETag};
         Other ->
-            console("Download error, cecking for cached file"),
+            console("* Download error, cecking for cached file"),
             rebar_api:debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
             {etag, ETag}
     after
@@ -344,6 +344,7 @@ finalize_download(FileHandler, Version, Hash, ETag) ->
     ok = file:close(FileHandler),
     move_file(rebar3_grisp_util:otp_cache_file_temp(Version, Hash),
               rebar3_grisp_util:otp_cache_file(Version, Hash)),
+    console("* Download completed"),
     {etag, ETag}.
 
 move_file(From, To) ->
@@ -359,7 +360,7 @@ maybe_unpack(Version, Hash, ETag) ->
     case should_unpack(Version, Hash, ETag) of
         yes ->
             OTPCacheInstallRoot = rebar3_grisp_util:otp_cache_install_root(Version, Hash),
-            console("Extracting ~p to ~p",
+            console("* Extracting ~p to ~p",
                     [rebar3_grisp_util:otp_cache_file(Version, Hash), OTPCacheInstallRoot]),
             case erl_tar:extract(
                    rebar3_grisp_util:otp_cache_file(Version, Hash),
@@ -374,7 +375,7 @@ maybe_unpack(Version, Hash, ETag) ->
                                          io_lib:format("~p.~n", [{etag, ETag}]));
                 true -> ok
             end;
-        no -> console("Extracted archive not modified")
+        no -> console("* Extracted archive is unmodified")
     end.
 
 should_unpack(Version, Hash, ETag) ->
