@@ -371,7 +371,7 @@ maybe_unpack(Version, Hash, ETag) ->
             if
                 is_list(ETag) ->
                     ok = file:write_file(filename:join([OTPCacheInstallRoot, "ETag"]),
-                                         io_lib:format("~p", [{etag, ETag}]));
+                                         io_lib:format("~p.~n", [{etag, ETag}]));
                 true -> ok
             end;
         no -> console("Extracted archive not modified")
