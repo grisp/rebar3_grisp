@@ -149,9 +149,8 @@ otp_build_install_root(State, Version) ->
     filename:join([root(State), "otp", Version, "install"]).
 
 otp_cache_install_root(Version, Hash) ->
-    filename:join([rebar_dir:home_dir(),
-                   ".cache", "grisp", "packages", "otp", "build", "grisp_otp_build_" ++
-                       Version ++ "_" ++ Hash]).
+    filename:join([otp_cache_root(),
+                   "grisp_otp_build_" ++ Version ++ "_" ++ Hash]).
 
 otp_cache_install_etag(Version, Hash) ->
     {ok, [{etag, ETag}]} = file:consult(

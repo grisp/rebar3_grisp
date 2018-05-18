@@ -52,52 +52,49 @@ do(State) ->
 
     Apps = rebar3_grisp_util:apps(State),
 
-    case rebar3_grisp_util:should_build(Config) of
-        false ->
-            abort_no_toolchain();
+    [abort_no_build() || not rebar3_grisp_util:should_build(Config)],
+    TcRoot = try rebar3_grisp_util:get([build, toolchain, directory], Config)
+             catch
+                 error:{key_not_found, _, _} -> abort_no_toolchain()
+             end,
+
+    BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
+    InstallRoot = rebar3_grisp_util:otp_build_install_root(State, Version),
+    GrispFolder = rebar3_grisp_util:root(State),
+
+    info("Checking out Erlang/OTP ~s", [Version]),
+    ensure_clone(URL, BuildRoot, Version, Opts),
+
+    console("* Copying C code..."),
+    DriverFiles = copy_files(Apps, Board, BuildRoot),
+
+    console("* Patching OTP to include sys and driver files"),
+    patch_otp(BuildRoot, maps:keys(DriverFiles), Version),
+
+    info("Building"),
+    ErlXComp = "erl-xcomp-" ++ Version ++ ".conf",
+    ErlXCompPath = find_file(Apps, Board, ["xcomp", ErlXComp]),
+    BuildConfFile = config_file(Apps, Board, ["grisp.conf"]),
+    BuildConfig = rebar3_grisp_util:merge_config(Config, BuildConfFile),
+    build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, TcRoot, Opts),
+
+    info("Computing file hashes"),
+    {Hash, HashString} = rebar3_grisp_util:get_hash(Apps, Board),
+
+    info("Writing hashes to file. Hash: ~p", [Hash]),
+    ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot),
+                         list_to_binary(HashString)),
+    case rebar3_grisp_util:get(tar, Opts, false) of
         true ->
-            TcRoot = try rebar3_grisp_util:get([build, toolchain, directory], Config)
-            catch
-                error:{key_not_found, _, _} -> abort_no_toolchain()
-            end,
+            Filename = tar_file_name(GrispFolder, Version, Hash),
+            info("Creating tar archive ~p", [Filename]),
+            create_tar(Filename, InstallRoot);
+        false -> ok
+    end,
 
-            BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
-            InstallRoot = rebar3_grisp_util:otp_build_install_root(State, Version),
-            GrispFolder = rebar3_grisp_util:root(State),
+    info("Done"),
+    {ok, State}.
 
-            info("Checking out Erlang/OTP ~s", [Version]),
-            ensure_clone(URL, BuildRoot, Version, Opts),
-
-            console("* Copying C code..."),
-            DriverFiles = copy_files(Apps, Board, BuildRoot),
-
-            console("* Patching OTP to include sys and driver files"),
-            patch_otp(BuildRoot, maps:keys(DriverFiles), Version),
-
-            info("Building"),
-            ErlXComp = "erl-xcomp-" ++ Version ++ ".conf",
-            ErlXCompPath = find_file(Apps, Board, ["xcomp", ErlXComp]),
-            BuildConfFile = config_file(Apps, Board, ["grisp.conf"]),
-            BuildConfig = rebar3_grisp_util:merge_config(Config, BuildConfFile),
-            build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, TcRoot, Opts),
-
-            info("Computing file hashes"),
-            {Hash, HashString} = rebar3_grisp_util:get_hash(Apps, Board),
-
-            info("Writing hashes to file. Hash: ~p", [Hash]),
-            ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot),
-                            list_to_binary(HashString)),
-            case rebar3_grisp_util:get(tar, Opts, false) of
-                true ->
-                    Filename = tar_file_name(GrispFolder, Version, Hash),
-                    info("Creating tar archive ~p", [Filename]),
-                    create_tar(Filename, InstallRoot);
-                false -> ok
-            end,
-
-            info("Done"),
-            {ok, State}
-    end.
 -spec format_error(any()) ->  iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
@@ -123,9 +120,7 @@ tar_file_name(GrispFolder, Version, Hash) ->
 
 create_tar(Filename, InstallRoot) ->
     rebar3_grisp_util:ensure_dir(Filename),
-    sh("tar -zcf " ++
-           Filename ++
-           "  .", [{cd, InstallRoot}]).
+    sh("tar -zcf " ++ Filename ++ "  .", [{cd, InstallRoot}]).
 
 ensure_clone(URL, Dir, Version, Opts) ->
     Branch = "grisp/OTP-" ++ Version,
@@ -276,6 +271,9 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
                          ],
             sh(PostCmd, ScriptOpts)
     end.
+
+abort_no_build() ->
+    abort("There was no build section found in your rebar.conf").
 
 abort_no_toolchain() ->
     abort("Please specify a build toolchain to build the cross compiled OTP release:~n" ++

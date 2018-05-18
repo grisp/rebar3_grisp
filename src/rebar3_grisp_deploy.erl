@@ -59,7 +59,7 @@ do(State) ->
 
     case rebar3_grisp_util:should_build(Config) of
         false ->
-            console("Using prebuilt OTP version"),
+            console("* Using prebuilt OTP"),
             InstallRoot = try_get_package(Apps, Board, OTPVersion);
         true ->
             console("* Using custom OTP"),
@@ -278,12 +278,12 @@ download_and_unpack(Version, Hash, ETag) ->
         {error, FileReason} -> abort("Error ~p", [FileReason])
     end,
     case try_download(Version, Hash, ETag) of
-        {etag, ETag2} -> ETag2;
-        _Other -> ETag2 = ""
+        {etag, ServerETag} -> ServerETag;
+        _Other -> ServerETag = ""
     end,
 
     case filelib:is_regular(rebar3_grisp_util:otp_cache_file(Version, Hash)) of
-        true -> maybe_unpack(Version, Hash, ETag2);
+        true -> maybe_unpack(Version, Hash, ServerETag);
         false -> abort("Could not obtain prebuilt OTP for your configuration. " ++
                            "This means either you are not connected to the internet, "++
                            "there is something wrong with our CDN, or you have modified "++
@@ -315,22 +315,17 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
     receive
         {http, {RequestId, stream_start, _Headers}} ->
             rebar_api:debug("Starting download", []),
-            NewFileHandler = start_download(Filename),
+            {ok, NewFileHandler} = file:open(Filename, [append, raw, binary]),
             download_loop(Filename, RequestId, Version, Hash, NewFileHandler, ETag);
         {http, {RequestId, stream, BinBodyPart}} ->
-            download_chunk(FileHandler, BinBodyPart),
+            ok = file:write(FileHandler, BinBodyPart),
             download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
         {http, {RequestId, stream_end, Headers}} ->
             rebar_api:debug("Stream ended", []),
             case lists:keyfind("etag", 1, Headers) of
-                {"etag", ETag2} ->
-                    %% Remove escape sequences from string
-                    ETag3 = lists:filter(fun ($\\) -> false;
-                                             ($") -> false;
-                                             (_Any) -> true
-                                         end, ETag2),
-                    rebar_api:debug("Downloaded file with ETag ~p", [ETag3]),
-                    finalize_download(FileHandler, Version, Hash, ETag3);
+                {"etag", ServerETag} ->
+                    rebar_api:debug("Downloaded file with ETag ~p", [ServerETag]),
+                    finalize_download(FileHandler, Version, Hash, ServerETag);
                 false ->
                     finalize_download(FileHandler, Version, Hash, ETag)
             end;
@@ -344,13 +339,6 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
     after
         120000 -> abort("Download timeout")
     end.
-
-start_download(Filename) ->
-    {ok, Handler} = file:open(Filename, [append, raw, binary]),
-    Handler.
-
-download_chunk(FileHandle, Bin) ->
-    ok = file:write(FileHandle, Bin).
 
 finalize_download(FileHandler, Version, Hash, ETag) ->
     ok = file:close(FileHandler),
@@ -383,7 +371,7 @@ maybe_unpack(Version, Hash, ETag) ->
             if
                 is_list(ETag) ->
                     ok = file:write_file(filename:join([OTPCacheInstallRoot, "ETag"]),
-                                         list_to_binary("{etag, \"" ++ ETag ++ "\"}."));
+                                         io_lib:format("~p", [{etag, ETag}]));
                 true -> ok
             end;
         no -> console("Extracted archive not modified")
