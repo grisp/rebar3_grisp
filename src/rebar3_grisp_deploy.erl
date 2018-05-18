@@ -309,7 +309,11 @@ try_download(Version, Hash, ETag) ->
 
 
 download_loop(Filename, RequestId, Version, Hash, ETag) ->
-    download_loop(Filename, RequestId, Version, Hash, false, ETag).
+    try
+        download_loop(Filename, RequestId, Version, Hash, false, ETag)
+    after
+        file:close(Filename)
+    end.
 
 download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
     receive
@@ -337,7 +341,8 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
             rebar_api:debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
             {etag, ETag}
     after
-        120000 -> abort("Download timeout")
+        120000 ->
+            abort("Download timeout")
     end.
 
 finalize_download(FileHandler, Version, Hash, ETag) ->
