@@ -6,10 +6,14 @@
 -export([format_error/1]).
 
 -import(rebar3_grisp_util, [
+    debug/1,
+    debug/2,
     info/1,
     info/2,
     console/1,
     console/2,
+    warn/1,
+    warn/2,
     abort/1,
     abort/2,
     sh/1,
@@ -89,7 +93,7 @@ check_otp_release(InstallRelVer) ->
     case {InstallRelVer, erlang:system_info(otp_release)} of
         {Target, Target} -> ok;
         {Target, Current} ->
-            rebar_api:warn(
+            warn(
                 "Current Erlang version (~p) does not match target "
                 "Erlang version (~p). It is not guaranteed that the "
                 "deployed release will work!", [Current, Target]
@@ -98,7 +102,7 @@ check_otp_release(InstallRelVer) ->
 
 make_release(_State, Name, Version, _InstallRoot) when
   Name == undefined; Version == undefined ->
-    rebar_api:abort("Release name and/or version not specified", []);
+    abort("Release name and/or version not specified", []);
 make_release(State, Name, Version, InstallRoot) ->
     State2 = rebar_state:set(State, relx, [
         {include_erts, InstallRoot},
@@ -159,7 +163,7 @@ grisp_files(Dir, Board, Subdir) ->
 
 write_file(Dest, Target, Source, Force, Context) ->
     Path = filename:join(Dest, Target),
-    rebar_api:debug("Creating ~p from ~p", [Path, Source]),
+    debug("Creating ~p from ~p", [Path, Source]),
     Content = load_file(Source, Context),
     force_execute(Path, Force,
         fun(F) ->
@@ -248,7 +252,7 @@ trim(String) ->
 
 try_get_package(Apps, Board, OTPVersion) ->
     {Hash, _HashString} = rebar3_grisp_util:get_hash(Apps, Board),
-    rebar_api:debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
+    debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
     try obtain_prebuilt(OTPVersion, Hash)
     catch
         error:nomatch -> abort("We don't have that version of OTP in our download archive. " ++
@@ -263,7 +267,7 @@ obtain_prebuilt(Version, ExpectedHash) ->
     case filelib:is_regular(Tarball) of
         true ->
             ETag = rebar3_grisp_util:otp_cache_install_etag(Version, ExpectedHash),
-            rebar_api:debug("Found file with ETag ~p", [ETag]),
+            debug("Found file with ETag ~p", [ETag]),
             download_and_unpack(Version, ExpectedHash, ETag);
         false ->
             download_and_unpack(Version, ExpectedHash, false)
@@ -285,10 +289,8 @@ download_and_unpack(Version, Hash, ETag) ->
         true -> maybe_unpack(Version, Hash, ServerETag);
         false -> abort("There is neither a prebuilt OTP available online, nor in the local archive "++
                            "that suits your configuration. " ++
-                           "This means either you are not connected to the internet, "++
-                           "there is something wrong with our CDN, or you have modified "++
-                           "any of the C drivers. In any case you can build your own toolchain " ++
-                           "and OTP (using rebar3 grisp build), or try later.")
+                           "Because C source has been modified or added, a "++
+                           "custom virtual machine needs to be built.")
     end.
 
 try_download(Version, Hash, ETag) ->
@@ -304,7 +306,7 @@ try_download(Version, Hash, ETag) ->
         _ -> Headers = [{"If-None-Match", ETag}]
     end,
     {ok, RequestId} = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
-    console("* Downloading prebuilt OTP pacakge"),
+    console("* Downloading prebuilt OTP package"),
     download_loop(Filename, RequestId, Version, Hash, ETag).
 
 
@@ -319,16 +321,16 @@ download_loop(Filename, RequestId, Version, Hash, ETag) ->
 download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
     receive
         {http, {RequestId, stream_start, _Headers}} ->
-            rebar_api:debug("Starting download", []),
+            debug("Starting download", []),
             download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
         {http, {RequestId, stream, BinBodyPart}} ->
             ok = file:write(FileHandler, BinBodyPart),
             download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
         {http, {RequestId, stream_end, Headers}} ->
-            rebar_api:debug("Stream ended", []),
+            debug("Stream ended", []),
             case lists:keyfind("etag", 1, Headers) of
                 {"etag", ServerETag} ->
-                    rebar_api:debug("Downloaded file with ETag ~p", [ServerETag]),
+                    debug("Downloaded file with ETag ~p", [ServerETag]),
                     finalize_download(FileHandler, Version, Hash, ServerETag);
                 false ->
                     finalize_download(FileHandler, Version, Hash, ETag)
@@ -337,15 +339,15 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
             console("* Cached file is up to date"),
             {etag, ETag};
         {http, {RequestId, {{_HTTPVersion, 404, "Not Found"}, _Headers, _Body}}} ->
-            console("* Server does not have OTP ~p Hash ~p", [Version, Hash]),
+            warn("* Server does not have OTP ~p Hash ~p", [Version, Hash]),
             {etag, ETag};
         {http, Other} ->
-            console("* Download error, checking for cached file"),
-            rebar_api:debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
+            warn("* Download error, checking for cached file"),
+            debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
             {etag, ETag}
     after
         120000 ->
-            console("* Download timed out")
+            warn("* Download timed out")
     end.
 
 finalize_download(FileHandler, Version, Hash, ETag) ->
@@ -387,7 +389,7 @@ maybe_unpack(Version, Hash, ETag) ->
     end.
 
 should_unpack(Version, Hash, ETag) ->
-    rebar_api:debug("Checking for ETag ~p", [ETag]),
+    debug("Checking for ETag ~p", [ETag]),
     case file:consult(filename:join([rebar3_grisp_util:otp_cache_install_root(Version, Hash), "ETag"])) of
         {error, enoent} -> yes;
         {ok, [{etag, ETag}]} -> no; % not modified

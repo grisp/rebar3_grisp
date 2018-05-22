@@ -8,7 +8,7 @@
 -include_lib("kernel/include/file.hrl").
 
 -import(rebar3_grisp_util, [
-    sh/1, sh/2, info/1, info/2, abort/1, abort/2, console/1, console/2
+    sh/1, sh/2, debug/1, debug/2, info/1, info/2, abort/1, abort/2, console/1, console/2
 ]).
 
 %--- Callbacks -----------------------------------------------------------------
@@ -112,7 +112,7 @@ copy_files(Apps, Board, BuildRoot) ->
     ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom, BuildRoot),
     maps:map(
       fun(Target, Source) ->
-              rebar_api:debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
+              debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
               {ok, _} = file:copy(Source, Target)
       end,
       ToFromAbsolute
@@ -192,7 +192,7 @@ config_file(Apps, Board, PathParts, DefaultConf) ->
     lists:foldl(FoldFun, DefaultConf, lists:reverse(Apps)).
 
 patch_otp(OTPRoot, Drivers, Version) ->
-    rebar_api:debug("Patching OTP Version ~p", [Version]),
+    debug("Patching OTP Version ~p", [Version]),
     TemplateFile = filename:join([
         code:priv_dir(rebar3_grisp),
         "patches/otp-" ++ Version ++ ".patch.mustache"
@@ -203,7 +203,7 @@ patch_otp(OTPRoot, Drivers, Version) ->
     end.
 
 apply_patch(TemplateFile, Drivers, OTPRoot) ->
-    rebar_api:debug("Using Template ~p", [TemplateFile]),
+    debug("Using Template ~p", [TemplateFile]),
     Template = bbmustache:parse_file(TemplateFile),
     Context = [
         {erts_emulator_makefile_in, [
@@ -230,7 +230,7 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
                      ]}],
     BuildOpts = [{cd, BuildRoot}|AllOpts],
     InstallOpts = [{cd, InstallRoot}|AllOpts],
-    rebar_api:debug("~p", [BuildOpts]),
+    debug("~p", [BuildOpts]),
     case rebar3_grisp_util:get(configure, Opts) of
         true ->
             console("* Running autoconf..."),

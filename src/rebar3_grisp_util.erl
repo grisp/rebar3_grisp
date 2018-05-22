@@ -2,10 +2,16 @@
 
 % API
 -export([apps/1]).
+-export([debug/1]).
+-export([debug/2]).
 -export([info/1]).
 -export([info/2]).
 -export([console/1]).
 -export([console/2]).
+-export([warn/1]).
+-export([warn/2]).
+-export([error/1]).
+-export([error/2]).
 -export([abort/1]).
 -export([abort/2]).
 -export([sh/1]).
@@ -50,11 +56,21 @@ apps(State) ->
     {Grisp, Other} = grisp_app(Apps),
     Other ++ Grisp.
 
+debug(Msg) -> debug(Msg, []).
+debug(Msg, Args) -> rebar_api:debug(Msg, Args).
+
 info(Msg) -> info(Msg, []).
 info(Msg, Args) -> rebar_api:info(Msg, Args).
 
 console(Msg) -> console(Msg, []).
 console(Msg, Args) -> rebar_api:console(Msg, Args).
+
+warn(Msg) -> warn(Msg, []).
+warn(Msg, Args) -> rebar_api:warn(Msg, Args).
+
+%% we need fully qualified calls, otherwise compiler will warn.
+error(Msg) -> rebar3_grisp_util:error(Msg, []).
+error(Msg, Args) -> rebar_api:error(Msg, Args).
 
 abort(Msg) -> abort(Msg, []).
 abort(Msg, Args) -> rebar_api:abort(Msg, Args).
@@ -64,7 +80,7 @@ sh(Command, Args) ->
     rebar_utils:sh(Command, Args ++ [abort_on_error]).
 
 get(Keys, Term) when is_list(Keys) ->
-    deep_get(Keys, Term, fun() -> error({key_not_found, Keys, Term}) end);
+    deep_get(Keys, Term, fun() -> rebar3_grisp_util:error({key_not_found, Keys, Term}) end);
 get(Key, Term) ->
     get([Key], Term).
 
@@ -74,7 +90,7 @@ get(Key, Term, Default) ->
     get([Key], Term, Default).
 
 files_copy_destination(Apps, Board) ->
-    rebar_api:debug("Creating copy list for apps: ~p", [Apps]),
+    debug("Creating copy list for apps: ~p", [Apps]),
     lists:foldl(
       fun(A, {Sys, Drivers}) ->
               collect_c_sources(A, Board, Sys, Drivers)
@@ -99,18 +115,18 @@ get_hash(Apps, Board) ->
     hash_grisp_files(ToFrom2).
 
 hash_grisp_files(ToFrom) ->
-    rebar_api:debug("Hashing ToFrom map: ~p", [ToFrom]),
+    debug("Hashing ToFrom map: ~p", [ToFrom]),
 
     Sorted = lists:keysort(1, maps:to_list(ToFrom)),
     FileHashes = lists:map(
                    fun({Target, Source}) ->
-                           rebar_api:debug("Hashing ~p for location ~p", [Source, Target]),
+                           debug("Hashing ~p for location ~p", [Source, Target]),
                            {ok, Hash} = hash_file(Source, sha256),
                            {Target, Hash}
                    end,
                    Sorted
                   ),
-    rebar_api:debug("~p", [FileHashes]),
+    debug("~p", [FileHashes]),
 
     HashString = hashes_to_string(FileHashes),
     Hash = lists:flatten(format_hash(sha256, crypto:hash(sha256, HashString))),
@@ -120,7 +136,7 @@ set(Keys, Struct, Value) ->
     update(Keys, Struct, fun
         ([],   _S)                -> Value;
         ([K|P], S) when is_map(S) -> S#{K => set(P, #{}, Value)};
-        (P, S)                    -> error({intermediate_value, P, S})
+        (P, S)                    -> rebar3_grisp_util:error({intermediate_value, P, S})
     end).
 
 root(State) ->
@@ -236,14 +252,14 @@ collect_drivers(Source) ->
      ).
 
 collect_files({SourceRoot, Pattern}, Target) ->
-    rebar_api:debug("Collecting ~p ~p for Target ~p", [SourceRoot, Pattern, Target]),
+    debug("Collecting ~p ~p for Target ~p", [SourceRoot, Pattern, Target]),
     Files = filelib:wildcard(filename:join(SourceRoot, Pattern)),
     maps:from_list([collect_file(F, Target) || F <- Files]).
 
 collect_file(Source, TargetDir) ->
     Base = filename:basename(Source),
     TargetFile = filename:join([TargetDir, Base]),
-    rebar_api:debug("Collecting Target ~p, Source ~p", [TargetFile, Source]),
+    debug("Collecting Target ~p, Source ~p", [TargetFile, Source]),
     {TargetFile, Source}.
 
 deep_get([], Value, _Default) ->
