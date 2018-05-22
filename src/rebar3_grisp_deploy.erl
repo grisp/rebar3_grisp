@@ -57,14 +57,13 @@ do(State) ->
     Board = rebar3_grisp_util:board(Config),
     Apps = rebar3_grisp_util:apps(State),
 
-    case rebar3_grisp_util:should_build(Config) of
-        false ->
-            console("* Using prebuilt OTP"),
-            InstallRoot = try_get_package(Apps, Board, OTPVersion);
-        true ->
-            console("* Using custom OTP"),
-            InstallRoot = rebar3_grisp_util:otp_build_install_root(State, OTPVersion)
-    end,
+    InstallRoot = case rebar3_grisp_util:should_build(Config) of
+                      false ->
+                          try_get_package(Apps, Board, OTPVersion);
+                      true ->
+                          console("* Using custom OTP"),
+                          rebar3_grisp_util:otp_build_install_root(State, OTPVersion)
+                  end,
     InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
     check_otp_release(InstallRelVer),
     State3 = make_release(State, RelName, RelVsn, InstallRoot),
@@ -284,7 +283,8 @@ download_and_unpack(Version, Hash, ETag) ->
 
     case filelib:is_regular(rebar3_grisp_util:otp_cache_file(Version, Hash)) of
         true -> maybe_unpack(Version, Hash, ServerETag);
-        false -> abort("Could not obtain prebuilt OTP for your configuration. " ++
+        false -> abort("There is neither a prebuilt OTP available online, nor in the local archive "++
+                           "that suits your configuration. " ++
                            "This means either you are not connected to the internet, "++
                            "there is something wrong with our CDN, or you have modified "++
                            "any of the C drivers. In any case you can build your own toolchain " ++
@@ -304,13 +304,14 @@ try_download(Version, Hash, ETag) ->
         _ -> Headers = [{"If-None-Match", ETag}]
     end,
     {ok, RequestId} = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
-    console("* Trying to download to ~p", [Filename]),
+    console("* Downloading prebuilt OTP pacakge"),
     download_loop(Filename, RequestId, Version, Hash, ETag).
 
 
 download_loop(Filename, RequestId, Version, Hash, ETag) ->
     try
-        download_loop(Filename, RequestId, Version, Hash, false, ETag)
+        {ok, FileHandler} = file:open(Filename, [append, raw, binary]),
+        download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag)
     after
         file:close(Filename)
     end.
@@ -319,8 +320,7 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
     receive
         {http, {RequestId, stream_start, _Headers}} ->
             rebar_api:debug("Starting download", []),
-            {ok, NewFileHandler} = file:open(Filename, [append, raw, binary]),
-            download_loop(Filename, RequestId, Version, Hash, NewFileHandler, ETag);
+            download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
         {http, {RequestId, stream, BinBodyPart}} ->
             ok = file:write(FileHandler, BinBodyPart),
             download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
@@ -336,13 +336,16 @@ download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
         {http, {RequestId, {{_HTTPVersion, 304, "Not Modified"}, _Headers, _Body}}} ->
             console("* Cached file is up to date"),
             {etag, ETag};
-        Other ->
-            console("* Download error, cecking for cached file"),
+        {http, {RequestId, {{_HTTPVersion, 404, "Not Found"}, _Headers, _Body}}} ->
+            console("* Server does not have OTP ~p Hash ~p", [Version, Hash]),
+            {etag, ETag};
+        {http, Other} ->
+            console("* Download error, checking for cached file"),
             rebar_api:debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
             {etag, ETag}
     after
         120000 ->
-            abort("Download timeout")
+            console("* Download timed out")
     end.
 
 finalize_download(FileHandler, Version, Hash, ETag) ->
