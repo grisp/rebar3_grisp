@@ -70,32 +70,9 @@ For a full list of customizable variables, run `rebar3 new help grispapp`.
 
 ```rebar3 compile```
 
-Make sure you do that with Erlang 19.3.6. If you compiled rebar3 yourself with a more recent version of Erlang it will give errors, you will need to recompile rebar3 as well in that case.
+Make sure you do that with Erlang 20.2. If you compiled rebar3 yourself with a more recent version of Erlang it will give errors, you will need to recompile rebar3 as well in that case.
 
 For further information have a look at the [GRiSP Wiki](https://github.com/grisp/grisp/wiki)
-
-## Build OTP for GRiSP
-
-Add the path to your build toolchain to the `rebar.config` file so the section looks something like this:
-
-```erlang
-{grisp, [
-    {otp_release, "19"},
-    
-    {toolchain, [{root,"/home/USERNAME/GRiSP/grisp-software/rtems-install/rtems-4.12"}]},
-    
-    {deploy, [
-        {destination, "/run/media/MYGRISPSD/"}
-    ]}
-]}.
-```
-
-Then execute `rebar3 grisp build`. This will take some time, because Erlang/OTP is cross-compiled for the GRiSP board.
-
-You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you wrote new drivers in C. If you need to build OTP for a second time you can speed it up by using `rebar3 grisp build --configure false`.
-
-The built Erlang distribution and its runtime system is located in the project
-folder, under the path `_grisp/otp/<version>/install`.
 
 ## Deploy an Application
 
@@ -109,6 +86,14 @@ Example:
 rebar3 grisp deploy --relname my_release --relvsn 0.7.8
 ```
 
+or shorter:
+
+```
+rebar3 grisp deploy -n my_release -v 0.1.0
+```
+
+Above command will try to download a crosscompiled OTP version from our CDN and unpack it. In many usecases this will be enough. If you want to add own port drivers in C you will have to build your own toolchain and OTP, see below.
+
 Run `rebar3 help grisp deploy` for information on all arguments.
 
 ### Configuration
@@ -117,6 +102,7 @@ Run `rebar3 help grisp deploy` for information on all arguments.
 
 ```erlang
 {grisp, [
+    {otp, [{version, "20.2"}]},
     {deploy, [
         % Path to put deployed release in
         {destination, "/path/to/destination"},
@@ -129,3 +115,28 @@ Run `rebar3 help grisp deploy` for information on all arguments.
     ]}
 ]}.
 ```
+
+## Build OTP for GRiSP
+
+Add the path to your build toolchain to the `rebar.config` file so the section looks something like this:
+
+```erlang
+{grisp, [
+    {otp, [{version, "20.2"}]},
+    {build, [
+              {root,"/home/USERNAME/GRiSP/grisp-software/rtems-install/rtems-4.12"}]}
+            ]},
+    {deploy, [
+        {destination, "/run/media/MYGRISPSD/"}
+    ]}
+]}.
+```
+
+Then execute `rebar3 grisp build`. This will take some time, because Erlang/OTP is cross-compiled for the GRiSP board.
+
+You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you wrote new drivers in C. If you need to build OTP for a second time you can speed it up by using `rebar3 grisp build --configure false`.
+
+You can create the tarballs we use for distribution on our CDN with `rebar3 grisp build --tar true`
+
+The built Erlang distribution and its runtime system is located in the project
+folder, under the path `_grisp/otp/<version>/install`.
