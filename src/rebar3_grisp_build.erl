@@ -87,7 +87,7 @@ do(State) ->
 
     info("Copying revision string into install dir"),
     {ok, _} = file:copy(filename:join(TcRoot, "buildrev"),
-                        filename:join(InstallRoot, "grisp-software-rev")),
+                        filename:join(InstallRoot, "GRISP_TOOLCHAIN_REV")),
 
     case rebar3_grisp_util:get(tar, Opts, false) of
         true ->
