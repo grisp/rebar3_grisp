@@ -84,6 +84,11 @@ do(State) ->
     info("Writing hashes to file. Hash: ~p", [Hash]),
     ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot),
                          list_to_binary(HashString)),
+
+    info("Copying revision string into install dir"),
+    {ok, _} = file:copy(filename:join(TcRoot, "buildrev"),
+                        filename:join(InstallRoot, "grisp-software-rev")),
+
     case rebar3_grisp_util:get(tar, Opts, false) of
         true ->
             Filename = tar_file_name(GrispFolder, Version, Hash),
