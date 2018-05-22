@@ -312,28 +312,28 @@ try_download(Version, Hash, ETag) ->
 
 download_loop(Filename, RequestId, Version, Hash, ETag) ->
     try
-        {ok, FileHandler} = file:open(Filename, [append, raw, binary]),
-        download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag)
+        {ok, FileHandle} = file:open(Filename, [append, raw, binary]),
+        download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag)
     after
         file:close(Filename)
     end.
 
-download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag) ->
+download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag) ->
     receive
         {http, {RequestId, stream_start, _Headers}} ->
             debug("Starting download", []),
-            download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
+            download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag);
         {http, {RequestId, stream, BinBodyPart}} ->
-            ok = file:write(FileHandler, BinBodyPart),
-            download_loop(Filename, RequestId, Version, Hash, FileHandler, ETag);
+            ok = file:write(FileHandle, BinBodyPart),
+            download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag);
         {http, {RequestId, stream_end, Headers}} ->
             debug("Stream ended", []),
             case lists:keyfind("etag", 1, Headers) of
                 {"etag", ServerETag} ->
                     debug("Downloaded file with ETag ~p", [ServerETag]),
-                    finalize_download(FileHandler, Version, Hash, ServerETag);
+                    finalize_download(FileHandle, Version, Hash, ServerETag);
                 false ->
-                    finalize_download(FileHandler, Version, Hash, ETag)
+                    finalize_download(FileHandle, Version, Hash, ETag)
             end;
         {http, {RequestId, {{_HTTPVersion, 304, "Not Modified"}, _Headers, _Body}}} ->
             console("* Cached file is up to date"),
