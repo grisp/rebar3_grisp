@@ -92,7 +92,7 @@ do(State) ->
     case rebar3_grisp_util:get(tar, Opts, false) of
         true ->
             Filename = tar_file_name(GrispFolder, Version, Hash),
-            info("Creating tar archive ~p", [Filename]),
+            info("Creating package ~p", [Filename]),
             create_tar(Filename, InstallRoot);
         false -> ok
     end,

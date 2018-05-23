@@ -255,10 +255,11 @@ try_get_package(Apps, Board, OTPVersion) ->
     debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
     try obtain_prebuilt(OTPVersion, Hash)
     catch
-        error:nomatch -> abort("We don't have that version of OTP in our download archive. " ++
-                                   "Either you modified some of the C files of the grisp OTP " ++
-                                   "application or you specified a wrong OTP version. " ++
-                                   "Please build your own toolchain.")
+        error:nomatch -> abort("Package for OTP ~p not found in our repository "++
+                                   "Either C source files have been modified or the "++
+                                   "OTP version does not have a pre-built package. "++
+                                   "Please build OTP manually using:~n~n"++
+                                   "rebar3 grisp build", [OTPVersion])
     end,
     rebar3_grisp_util:otp_cache_install_root(OTPVersion, Hash).
 
@@ -370,8 +371,7 @@ maybe_unpack(Version, Hash, ETag) ->
     case should_unpack(Version, Hash, ETag) of
         yes ->
             OTPCacheInstallRoot = rebar3_grisp_util:otp_cache_install_root(Version, Hash),
-            console("* Extracting ~p to ~p",
-                    [rebar3_grisp_util:otp_cache_file(Version, Hash), OTPCacheInstallRoot]),
+            console("* Extracting package"),
             case erl_tar:extract(
                    rebar3_grisp_util:otp_cache_file(Version, Hash),
                    [compressed, {cwd, OTPCacheInstallRoot}])
@@ -385,7 +385,7 @@ maybe_unpack(Version, Hash, ETag) ->
                                          io_lib:format("~p.~n", [{etag, ETag}]));
                 true -> ok
             end;
-        no -> console("* Extracted archive is unmodified")
+        no -> console("* Current package up to date")
     end.
 
 should_unpack(Version, Hash, ETag) ->
