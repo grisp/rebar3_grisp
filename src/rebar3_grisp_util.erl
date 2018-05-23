@@ -317,7 +317,7 @@ format_hash(md5, Hash) when is_binary(Hash) ->
     format_hash(Int).
 
 format_hash(Int) when is_integer(Int) ->
-    io_lib:format("~.16B", [Int]).
+    io_lib:format("~.16b", [Int]).
 
 merge_config_([], Acc) -> lists:reverse(Acc);
 merge_config_([{Key, []}, {Key, [{_, _}|_] = Val} | Rest], Acc) ->
