@@ -10,8 +10,8 @@
 -export([console/2]).
 -export([warn/1]).
 -export([warn/2]).
--export([error/1]).
--export([error/2]).
+-export([err/1]).
+-export([err/2]).
 -export([abort/1]).
 -export([abort/2]).
 -export([sh/1]).
@@ -68,9 +68,8 @@ console(Msg, Args) -> rebar_api:console(Msg, Args).
 warn(Msg) -> warn(Msg, []).
 warn(Msg, Args) -> rebar_api:warn(Msg, Args).
 
-%% we need fully qualified calls, otherwise compiler will warn.
-error(Msg) -> rebar3_grisp_util:error(Msg, []).
-error(Msg, Args) -> rebar_api:error(Msg, Args).
+err(Msg) -> err(Msg, []).
+err(Msg, Args) -> rebar_api:error(Msg, Args).
 
 abort(Msg) -> abort(Msg, []).
 abort(Msg, Args) -> rebar_api:abort(Msg, Args).
@@ -80,7 +79,7 @@ sh(Command, Args) ->
     rebar_utils:sh(Command, Args ++ [abort_on_error]).
 
 get(Keys, Term) when is_list(Keys) ->
-    deep_get(Keys, Term, fun() -> rebar3_grisp_util:error({key_not_found, Keys, Term}) end);
+    deep_get(Keys, Term, fun() -> error({key_not_found, Keys, Term}) end);
 get(Key, Term) ->
     get([Key], Term).
 
@@ -136,7 +135,7 @@ set(Keys, Struct, Value) ->
     update(Keys, Struct, fun
         ([],   _S)                -> Value;
         ([K|P], S) when is_map(S) -> S#{K => set(P, #{}, Value)};
-        (P, S)                    -> rebar3_grisp_util:error({intermediate_value, P, S})
+        (P, S)                    -> error({intermediate_value, P, S})
     end).
 
 root(State) ->
