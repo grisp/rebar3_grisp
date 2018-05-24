@@ -5,12 +5,15 @@
 -export([do/1]).
 -export([format_error/1]).
 
--include("rebar3_grisp.hrl").
-
 -import(rebar3_grisp_util, [
+    debug/1,
+    debug/2,
+    info/1,
     info/2,
     console/1,
     console/2,
+    warn/1,
+    warn/2,
     abort/1,
     abort/2,
     sh/1,
@@ -26,7 +29,7 @@ init(State) ->
             {name, deploy},
             {module, ?MODULE},
             {bare, true},
-            {deps, [{default, app_discovery}]},
+            {deps, [{default, install_deps}]},
             {example, "rebar3 grisp deploy"},
             {opts, [
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
@@ -51,13 +54,20 @@ The command requires the release name and version to be provided.
 do(State) ->
     {Args, _} = rebar_state:command_parsed_args(State),
     info("~p", [Args]),
-    Config = rebar_state:get(State, grisp, []),
+    Config = rebar3_grisp_util:config(State),
     RelName = proplists:get_value(relname, Args),
     RelVsn = proplists:get_value(relvsn, Args),
-    OTPVersion = rebar3_grisp_util:get([otp, version], Config,
-        ?DEFAULT_OTP_VSN
-    ),
-    InstallRoot = rebar3_grisp_util:otp_install_root(State, OTPVersion),
+    OTPVersion = rebar3_grisp_util:otp_version(Config),
+    Board = rebar3_grisp_util:board(Config),
+    Apps = rebar3_grisp_util:apps(State),
+
+    InstallRoot = case rebar3_grisp_util:should_build(Config) of
+                      false ->
+                          try_get_package(Apps, Board, OTPVersion);
+                      true ->
+                          console("* Using custom OTP"),
+                          rebar3_grisp_util:otp_build_install_root(State, OTPVersion)
+                  end,
     InstallRelVer = rebar3_grisp_util:otp_install_release_version(InstallRoot),
     check_otp_release(InstallRelVer),
     State3 = make_release(State, RelName, RelVsn, InstallRoot),
@@ -68,7 +78,6 @@ do(State) ->
     % FIXME: Resolve ERTS version
     ERTSPath = filelib:wildcard(filename:join(InstallRoot, "erts-*")),
     "erts-" ++ ERTSVsn = filename:basename(ERTSPath),
-    Board = rebar3_grisp_util:get([board], Config, ?DEFAULT_GRISP_BOARD),
     copy_files(State3, RelName, RelVsn, Board, ERTSVsn, Dest, Force),
     copy_release(State3, RelName, RelVsn, Dest, Force),
     run_script(post_script, State),
@@ -84,7 +93,7 @@ check_otp_release(InstallRelVer) ->
     case {InstallRelVer, erlang:system_info(otp_release)} of
         {Target, Target} -> ok;
         {Target, Current} ->
-            rebar_api:warn(
+            warn(
                 "Current Erlang version (~p) does not match target "
                 "Erlang version (~p). It is not guaranteed that the "
                 "deployed release will work!", [Current, Target]
@@ -93,7 +102,7 @@ check_otp_release(InstallRelVer) ->
 
 make_release(_State, Name, Version, _InstallRoot) when
   Name == undefined; Version == undefined ->
-    rebar_api:abort("Release name and/or version not specified", []);
+    abort("Release name and/or version not specified", []);
 make_release(State, Name, Version, InstallRoot) ->
     State2 = rebar_state:set(State, relx, [
         {include_erts, InstallRoot},
@@ -122,16 +131,7 @@ run_script(Name, State) ->
 
 copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
     console("* Copying files..."),
-    AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
-    Tree = case rebar3_grisp_util:grisp_app(AllApps) of
-        {[], _} -> grisp_files(rebar_state:dir(State), Board);
-        {[Grisp], _} ->
-            [GrispFiles, ProjectFiles] = lists:map(
-                fun(Dir) -> grisp_files(Dir, Board) end,
-                [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
-            ),
-            maps:merge(GrispFiles, ProjectFiles)
-    end,
+    Tree = find_replacement_files(State, Board, "files"),
     Context = [
         {release_name, RelName},
         {release_version, RelVsn},
@@ -144,17 +144,30 @@ copy_files(State, RelName, RelVsn, Board, ERTSVsn, Dest, Force) ->
         Tree
     ).
 
-grisp_files(Dir, Board) ->
-    Path = filename:join([Dir, "grisp", Board, "files"]),
+%% Builds a map From => To, project's files replace grisp files,
+find_replacement_files(State, Board, Subdir) ->
+    AllApps = rebar_state:all_deps(State) ++ rebar_state:project_apps(State),
+    case rebar3_grisp_util:grisp_app(AllApps) of
+        {[], _} -> grisp_files(rebar_state:dir(State), Board, Subdir);
+        {[Grisp], _} ->
+            [GrispFiles, ProjectFiles] = lists:map(
+                                           fun(Dir) -> grisp_files(Dir, Board, Subdir) end,
+                                           [rebar_app_info:dir(Grisp), rebar_state:dir(State)]
+                                          ),
+            maps:merge(GrispFiles, ProjectFiles)
+    end.
+
+grisp_files(Dir, Board, Subdir) ->
+    Path = filename:join([Dir, "grisp", Board, Subdir]),
     resolve_files(find_files(Path), Path).
 
 write_file(Dest, Target, Source, Force, Context) ->
     Path = filename:join(Dest, Target),
-    rebar_api:debug("Creating ~p from ~p", [Path, Source]),
+    debug("Creating ~p from ~p", [Path, Source]),
     Content = load_file(Source, Context),
     force_execute(Path, Force,
         fun(F) ->
-            ensure_dir(F),
+            rebar3_grisp_util:ensure_dir(F),
             ok = file:write_file(F, Content)
         end
     ).
@@ -168,10 +181,10 @@ resolve_files([File|Files], Root, Resolved) ->
     Relative = prefix(File, Root ++ "/"),
     Name = filename:rootname(Relative, ".mustache"),
     resolve_files(Files, Root, maps:put(
-        Name,
-        resolve_file(Root, Relative, Name, maps:find(Name, Resolved)),
-        Resolved
-    ));
+                                 Name,
+                                 resolve_file(Root, Relative, Name, maps:find(Name, Resolved)),
+                                 Resolved
+                                ));
 resolve_files([], _Root, Resolved) ->
     Resolved.
 
@@ -201,7 +214,7 @@ copy_release(State, Name, _Version, Dest, Force) ->
         true  -> "cp -Rf";
         false -> "cp -R"
     end,
-    ensure_dir(Target),
+    rebar3_grisp_util:ensure_dir(Target),
     sh(string:join([Command, Source ++ "/", Target], " ")).
 
 force_execute(File, Force, Fun) ->
@@ -215,12 +228,6 @@ force_execute(File, Force, Fun) ->
             ok
     end,
     Fun(File).
-
-ensure_dir(File) ->
-    case filelib:ensure_dir(File) of
-        ok    -> ok;
-        Error -> abort("Could not create target directory: ~p", [Error])
-    end.
 
 get_option(Arg, ConfigKey, State) ->
     get_arg_option(Arg, State, fun(Config) ->
@@ -242,3 +249,149 @@ get_arg_option(Arg, State, Fun) ->
 
 trim(String) ->
     re:replace(String, "(^[\s\n\t]+|[\s\n\t]+$)", "", [global, {return, list}]).
+
+try_get_package(Apps, Board, OTPVersion) ->
+    {Hash, _HashString} = rebar3_grisp_util:get_hash(Apps, Board),
+    debug("Version ~p, Hash ~p", [OTPVersion, Hash]),
+    try obtain_prebuilt(OTPVersion, Hash)
+    catch
+        error:nomatch -> abort("Package for OTP ~p not found in our repository "++
+                                   "Either C source files have been modified or the "++
+                                   "OTP version does not have a pre-built package. "++
+                                   "Please build OTP manually using:~n~n"++
+                                   "rebar3 grisp build", [OTPVersion])
+    end,
+    rebar3_grisp_util:otp_cache_install_root(OTPVersion, Hash).
+
+obtain_prebuilt(Version, ExpectedHash) ->
+    Tarball = rebar3_grisp_util:otp_cache_file(Version, ExpectedHash),
+    case filelib:is_regular(Tarball) of
+        true ->
+            ETag = rebar3_grisp_util:otp_cache_install_etag(Version, ExpectedHash),
+            debug("Found file with ETag ~p", [ETag]),
+            download_and_unpack(Version, ExpectedHash, ETag);
+        false ->
+            download_and_unpack(Version, ExpectedHash, false)
+    end.
+
+download_and_unpack(Version, Hash, ETag) ->
+    rebar3_grisp_util:ensure_dir(rebar3_grisp_util:otp_cache_file(Version, Hash)),
+    case file:delete(rebar3_grisp_util:otp_cache_file_temp(Version, Hash)) of
+        ok -> ok;
+        {error, enoent} -> ok;
+        {error, FileReason} -> abort("Error ~p", [FileReason])
+    end,
+    case try_download(Version, Hash, ETag) of
+        {etag, ServerETag} -> ServerETag;
+        _Other -> ServerETag = ""
+    end,
+
+    case filelib:is_regular(rebar3_grisp_util:otp_cache_file(Version, Hash)) of
+        true -> maybe_unpack(Version, Hash, ServerETag);
+        false -> abort("There is neither a prebuilt OTP available online, nor in the local archive "++
+                           "that suits your configuration. " ++
+                           "Because C source has been modified or added, a "++
+                           "custom virtual machine needs to be built.")
+    end.
+
+try_download(Version, Hash, ETag) ->
+    ssl:start(),
+    {ok, InetsPid} = inets:start(httpc, [{profile, rebar3_grisp}], stand_alone),
+    HTTPOptions = [{connect_timeout, 5000}],
+    Options = [{stream, self},
+               {body_format, binary}, {sync, false}],
+    Url = rebar3_grisp_util:cdn() ++ rebar3_grisp_util:otp_cache_file_name(Version, Hash),
+    Filename = rebar3_grisp_util:otp_cache_file_temp(Version, Hash),
+    case ETag of
+        false -> Headers = [];
+        _ -> Headers = [{"If-None-Match", ETag}]
+    end,
+    {ok, RequestId} = httpc:request(get, {Url, Headers}, HTTPOptions, Options, InetsPid),
+    console("* Downloading prebuilt OTP package"),
+    download_loop(Filename, RequestId, Version, Hash, ETag).
+
+
+download_loop(Filename, RequestId, Version, Hash, ETag) ->
+    try
+        {ok, FileHandle} = file:open(Filename, [append, raw, binary]),
+        download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag)
+    after
+        file:close(Filename)
+    end.
+
+download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag) ->
+    receive
+        {http, {RequestId, stream_start, _Headers}} ->
+            debug("Starting download", []),
+            download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag);
+        {http, {RequestId, stream, BinBodyPart}} ->
+            ok = file:write(FileHandle, BinBodyPart),
+            download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag);
+        {http, {RequestId, stream_end, Headers}} ->
+            debug("Stream ended", []),
+            case lists:keyfind("etag", 1, Headers) of
+                {"etag", ServerETag} ->
+                    debug("Downloaded file with ETag ~p", [ServerETag]),
+                    finalize_download(FileHandle, Version, Hash, ServerETag);
+                false ->
+                    finalize_download(FileHandle, Version, Hash, ETag)
+            end;
+        {http, {RequestId, {{_HTTPVersion, 304, "Not Modified"}, _Headers, _Body}}} ->
+            console("* Cached file is up to date"),
+            {etag, ETag};
+        {http, {RequestId, {{_HTTPVersion, 404, "Not Found"}, _Headers, _Body}}} ->
+            warn("* Server does not have OTP ~p Hash ~p", [Version, Hash]),
+            {etag, ETag};
+        {http, Other} ->
+            warn("* Download error, checking for cached file"),
+            debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
+            {etag, ETag}
+    after
+        120000 ->
+            warn("* Download timed out")
+    end.
+
+finalize_download(FileHandler, Version, Hash, ETag) ->
+    ok = file:close(FileHandler),
+    move_file(rebar3_grisp_util:otp_cache_file_temp(Version, Hash),
+              rebar3_grisp_util:otp_cache_file(Version, Hash)),
+    console("* Download completed"),
+    {etag, ETag}.
+
+move_file(From, To) ->
+    case file:delete(To) of
+        ok -> ok;
+        {error, enoent} -> ok;
+        {error, Reason} -> abort("Error ~p", [Reason])
+    end,
+    file:rename(From, To),
+    file:delete(From).
+
+maybe_unpack(Version, Hash, ETag) ->
+    case should_unpack(Version, Hash, ETag) of
+        yes ->
+            OTPCacheInstallRoot = rebar3_grisp_util:otp_cache_install_root(Version, Hash),
+            console("* Extracting package"),
+            case erl_tar:extract(
+                   rebar3_grisp_util:otp_cache_file(Version, Hash),
+                   [compressed, {cwd, OTPCacheInstallRoot}])
+            of
+                ok -> ok;
+                {error, Reason} -> abort("Tar extraction failed: ~p", [Reason])
+            end,
+            if
+                is_list(ETag) ->
+                    ok = file:write_file(filename:join([OTPCacheInstallRoot, "ETag"]),
+                                         io_lib:format("~p.~n", [{etag, ETag}]));
+                true -> ok
+            end;
+        no -> console("* Current package up to date")
+    end.
+
+should_unpack(Version, Hash, ETag) ->
+    debug("Checking for ETag ~p", [ETag]),
+    case file:consult(filename:join([rebar3_grisp_util:otp_cache_install_root(Version, Hash), "ETag"])) of
+        {error, enoent} -> yes;
+        {ok, [{etag, ETag}]} -> no; % not modified
+        _Other  -> yes
+    end.
