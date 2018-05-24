@@ -129,16 +129,18 @@ Run `rebar3 help grisp deploy` for information on all arguments.
 
 ## Build OTP for GRiSP
 
-Add the path to your build toolchain to the `rebar.config`:
+Add the path to the toolchain to the `rebar.config` under `grisp` → `build` → `toolchain` → `directory`:
 
 ```erlang
 {grisp, [
     {otp, [{version, "20.2"}]},
     {build, [
-              {root,"/PATH/TO/TOOLCHAIN/grisp-software/rtems-install/rtems-4.12"}]}
-            ]},
+        {toolchain, [
+            {directory,"/PATH/TO/TOOLCHAIN/grisp-software/rtems-install/rtems-4.12"}]}
+        ]}
+    ]},
     {deploy, [
-        {destination, "/run/media/MYGRISPSD/"}
+        {destination, "/path/to/destination"}
     ]}
 ]}.
 ```
