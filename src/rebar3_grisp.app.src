@@ -20,6 +20,9 @@
         },
         {"Changelog",
             "https://github.com/grisp/rebar3_grisp/blob/master/CHANGELOG.md"
+        },
+        {"Homepage",
+            "https://www.grisp.org"
         }
     ]}
 ]}.
