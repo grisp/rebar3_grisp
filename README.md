@@ -16,8 +16,19 @@ To install the plug-in globally, add the plug-in to your plug-ins list in
 ]}.
 ```
 
-CAVEAT: global rebar plugins are  kind of hard to upgrade to a newer version.
-The way *not* to do it is `rebar plugins upgrade rebar3_grisp`  what worked for us is removing it from the `.cache` dir `rm -rf  ~/.cache/rebar3/plugins/rebar3_grisp/` and keeping it in the config.  The next call to `rebar3 new grispapp` it gets reinstalled in the latest version configure in `~/.config/rebar3/rebar.config` .
+The first time you use Rebar the plug-in will be installed. To upgrade the plug-in to the latest version, you need to first update the Hex index and then the plug-in:
+
+```
+$ rebar3 update
+===> Updating package registry...
+===> Writing registry to ~/.cache/rebar3/hex/default/registry
+===> Generating package index...
+===> Writing index to ~/.cache/rebar3/hex/default/packages.idx
+$ rebar3 plugins upgrade rebar3_grisp
+===> Fetching rebar3_grisp ({pkg,<<"rebar3_grisp">>,<<"1.1.0">>})
+===> Downloaded package, caching at ~/.cache/rebar3/hex/default/packages/rebar3_grisp-1.1.0.tar
+===> Compiling rebar3_grisp
+```
 
 ### For an Existing Project
 
