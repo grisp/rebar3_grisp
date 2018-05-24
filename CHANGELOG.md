@@ -1,5 +1,22 @@
 # Change Log
 
+## [1.1.0](https://github.com/grisp/rebar3_grisp/tree/1.1.0) (2018-05-24)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.0.1...1.1.0)
+
+**Closed issues:**
+
+- Start Erlang runtime when source dependencies are included [\#21](https://github.com/grisp/rebar3_grisp/issues/21)
+- Wrong warning about Erlang version mismatch [\#14](https://github.com/grisp/rebar3_grisp/issues/14)
+- Make deploy destination available via command-line flag [\#5](https://github.com/grisp/rebar3_grisp/issues/5)
+- Confusing error message, when no toolchain root is set [\#4](https://github.com/grisp/rebar3_grisp/issues/4)
+
+**Merged pull requests:**
+
+- Prebuilt toolchain [\#20](https://github.com/grisp/rebar3_grisp/pull/20) ([nextl00p](https://github.com/nextl00p))
+- Add version to OTP xcomp files [\#18](https://github.com/grisp/rebar3_grisp/pull/18) ([sylane](https://github.com/sylane))
+- Allow deploy without grisp runtime and fix version warning [\#17](https://github.com/grisp/rebar3_grisp/pull/17) ([sylane](https://github.com/sylane))
+- Refactor build configuration [\#16](https://github.com/grisp/rebar3_grisp/pull/16) ([sylane](https://github.com/sylane))
+
 ## [1.0.1](https://github.com/grisp/rebar3_grisp/tree/1.0.1) (2017-12-20)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.0.0...1.0.1)
 
