@@ -195,10 +195,9 @@ otp_hash_listing_path(InstallRoot) ->
     filename:join([InstallRoot, "GRISP_PACKAGE_FILES"]).
 
 grisp_app(Apps) ->
-    UApps = lists:usort(Apps),
     lists:partition(
         fun(A) -> rebar_app_info:name(A) == <<"grisp">> end,
-        UApps
+        Apps
     ).
 
 merge_config(New, Old) ->
