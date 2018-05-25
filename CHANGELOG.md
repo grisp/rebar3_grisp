@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.1.1](https://github.com/grisp/rebar3_grisp/tree/1.1.1) (2018-05-25)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.0...1.1.1)
+
+**Fixed bugs:**
+
+- Freshly generated grispapp fails to deploy the first time its run [\#23](https://github.com/grisp/rebar3_grisp/issues/23)
+
 ## [1.1.0](https://github.com/grisp/rebar3_grisp/tree/1.1.0) (2018-05-24)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.0.1...1.1.0)
 
