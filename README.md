@@ -122,7 +122,7 @@ Run `rebar3 help grisp deploy` for information on all arguments.
         {pre_script, "rm -rf /path/to/destination/*"},
 
         % Shell script to run after deploying has finished
-        {post_script, "unmount /path/to/destination"}
+        {post_script, "umount /path/to/destination"}
     ]}
 ]}.
 ```
