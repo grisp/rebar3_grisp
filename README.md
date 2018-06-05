@@ -94,13 +94,13 @@ destination can be set in `rebar.config` or be given as an additional argument.
 Example:
 
 ```
-rebar3 grisp deploy --relname my_release --relvsn 0.7.8
+rebar3 grisp deploy --relname mygrispproject --relvsn 0.7.8
 ```
 
 or shorter:
 
 ```
-rebar3 grisp deploy -n my_release -v 0.1.0
+rebar3 grisp deploy -n mygrispproject -v 0.1.0
 ```
 
 Above command will try to download a crosscompiled OTP version from our CDN and unpack it. In many usecases this will be enough. If you want to add own port drivers in C you will have to build your own toolchain and OTP, see below.
