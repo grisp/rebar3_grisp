@@ -47,13 +47,6 @@ $ rebar3 grisp
 <Plugin Output>
 ```
 
-***Note!*** This does not work together with the global installation of the
-plug-in with Rebar versions 3.4.7 and above, see [Rebar 3 crashes when deploying
-my project. What should I do?][FAQ-R3] in the [FAQ] for more information.
-
-[FAQ-R3]: https://github.com/grisp/grisp/wiki/Frequently-Asked-Questions#rebar-3-crashes-when-deploying-my-project-what-should-i-do
-[FAQ]: https://github.com/grisp/grisp/wiki/Frequently-Asked-Questions
-
 ## Create New Application
 
 Prerequisites:
