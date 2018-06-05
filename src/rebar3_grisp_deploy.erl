@@ -208,8 +208,8 @@ load_file(Source, _Context) ->
 
 copy_release(State, Name, _Version, Dest, Force) ->
     console("* Copying release..."),
-    Source = filename:join([rebar_dir:base_dir(State), "rel", Name]),
-    Target = filename:join(Dest, Name),
+    Source = "\"" ++ filename:join([rebar_dir:base_dir(State), "rel", Name]) ++ "\"",
+    Target = "\"" ++ filename:join(Dest, Name) ++ "\"",
     Command = case Force of
         true  -> "cp -Rf";
         false -> "cp -R"
