@@ -65,8 +65,7 @@ The specific variables provided by this plug-in are:
 * **`dest`** is the destination path for deployment. This should point to where
   your SD-card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
   is the name of the SD-card partition)
-* **`otp_release`** is the target Erlang/OTP version used on the GRiSP (defaults
-  to `19`)
+* **`otp_release`** is the target Erlang/OTP version used on the GRiSP board
 
 For a full list of customizable variables, run `rebar3 new help grispapp`.
 
@@ -74,7 +73,7 @@ For a full list of customizable variables, run `rebar3 new help grispapp`.
 
 ```rebar3 compile```
 
-Make sure you do that with Erlang 20.2. If you compiled rebar3 yourself with a more recent version of Erlang it will give errors, you will need to recompile rebar3 as well in that case.
+Make sure you do that with the same Erlang version that you configured in the `rebar.config`. If you compiled rebar3 yourself with a more recent version of Erlang it will give errors, you will need to recompile rebar3 as well in that case.
 
 For further information have a look at the [GRiSP Wiki](https://github.com/grisp/grisp/wiki)
 
