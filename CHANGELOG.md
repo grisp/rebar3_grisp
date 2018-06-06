@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.1.2](https://github.com/grisp/rebar3_grisp/tree/1.1.2) (2018-06-06)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.1...1.1.2)
+
+**Merged pull requests:**
+
+- deploy: added support for whitespaces in source and deployment directories [\#28](https://github.com/grisp/rebar3_grisp/pull/28) ([lwehmeier](https://github.com/lwehmeier))
+- Remove references to old versions [\#27](https://github.com/grisp/rebar3_grisp/pull/27) ([nextl00p](https://github.com/nextl00p))
+- consistency of the instructions for release name [\#26](https://github.com/grisp/rebar3_grisp/pull/26) ([CrowdHailer](https://github.com/CrowdHailer))
+- Add support for OTP 21.0-rc1 [\#25](https://github.com/grisp/rebar3_grisp/pull/25) ([sylane](https://github.com/sylane))
+
 ## [1.1.1](https://github.com/grisp/rebar3_grisp/tree/1.1.1) (2018-05-25)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.0...1.1.1)
 
