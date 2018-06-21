@@ -287,11 +287,18 @@ download_and_unpack(Version, Hash, ETag) ->
     end,
 
     case filelib:is_regular(rebar3_grisp_util:otp_cache_file(Version, Hash)) of
-        true -> maybe_unpack(Version, Hash, ServerETag);
-        false -> abort("There is neither a prebuilt OTP available online, nor in the local archive "++
-                           "that suits your configuration. " ++
-                           "Because C source has been modified or added, a "++
-                           "custom virtual machine needs to be built.")
+        true ->
+            maybe_unpack(Version, Hash, ServerETag);
+        false -> 
+            abort(
+                "Could not find a cached package matching your " ++ 
+                "configuration!~n" ++
+                "Possible causes:~n" ++
+                "  - You have custom C sources and need to do a manual " ++
+                "build: rebar3 grisp build~n" ++
+                "  - The package is missing in the repository and the local " ++
+                "cache"
+            )
     end.
 
 try_download(Version, Hash, ETag) ->
@@ -343,7 +350,8 @@ download_loop(Filename, RequestId, Version, Hash, FileHandle, ETag) ->
             warn("* Server does not have OTP ~p Hash ~p", [Version, Hash]),
             {etag, ETag};
         {http, Other} ->
-            warn("* Download error, checking for cached file"),
+            warn("* Download error: ~n~p", [Other]),
+            console("* Using cached file"),
             debug("HTTPC error: ~p, RequestId ~p", [Other, RequestId]),
             {etag, ETag}
     after
