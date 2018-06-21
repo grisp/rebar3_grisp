@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.1.3](https://github.com/grisp/rebar3_grisp/tree/1.1.3) (2018-06-21)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.2...1.1.3)
+
 ## [1.1.2](https://github.com/grisp/rebar3_grisp/tree/1.1.2) (2018-06-06)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.1...1.1.2)
 
