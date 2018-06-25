@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.1.5](https://github.com/grisp/rebar3_grisp/tree/1.1.5) (2018-06-25)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.4...1.1.5)
+
+**Fixed bugs:**
+
+- Weird directory with name " created during deploy [\#30](https://github.com/grisp/rebar3_grisp/issues/30)
+
 ## [1.1.4](https://github.com/grisp/rebar3_grisp/tree/1.1.4) (2018-06-21)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.3...1.1.4)
 
