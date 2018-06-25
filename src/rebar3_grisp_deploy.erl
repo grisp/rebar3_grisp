@@ -78,6 +78,7 @@ do(State) ->
     % FIXME: Resolve ERTS version
     ERTSPath = filelib:wildcard(filename:join(InstallRoot, "erts-*")),
     "erts-" ++ ERTSVsn = filename:basename(ERTSPath),
+    rebar3_grisp_util:ensure_dir(filename:join(Dest, "PLACEHOLDER")),
     copy_files(State3, RelName, RelVsn, Board, ERTSVsn, Dest, Force),
     copy_release(State3, RelName, RelVsn, Dest, Force),
     run_script(post_script, State),
@@ -208,14 +209,15 @@ load_file(Source, _Context) ->
 
 copy_release(State, Name, _Version, Dest, Force) ->
     console("* Copying release..."),
-    Source = "\"" ++ filename:join([rebar_dir:base_dir(State), "rel", Name]) ++ "\"",
-    Target = "\"" ++ filename:join(Dest, Name) ++ "\"",
+    Source = filename:join([rebar_dir:base_dir(State), "rel", Name]),
+    Target = filename:join(Dest, Name),
     Command = case Force of
         true  -> "cp -Rf";
         false -> "cp -R"
     end,
-    rebar3_grisp_util:ensure_dir(Target),
-    sh(string:join([Command, Source ++ "/", Target], " ")).
+    sh(string:join([Command, qoute(Source ++ "/"), qoute(Target)], " ")).
+
+qoute(String) -> "\"" ++ String ++ "\"".
 
 force_execute(File, Force, Fun) ->
     case {filelib:is_file(File), Force} of
