@@ -215,9 +215,8 @@ apply_patch(TemplateFile, Drivers, OTPRoot) ->
     ok = file:write_file(filename:join(OTPRoot, "otp.patch"), Patch),
     case sh("git apply otp.patch --reverse --check", [{cd, OTPRoot}, return_on_error]) of
         {ok, _} ->
-            console("* Patching OTP... (skipped, already patched)");
+            console("  (skipped, already patched)");
         {error, {1, _}} ->
-            console("* Patching OTP..."),
             sh("git apply otp.patch", [{cd, OTPRoot}])
     end,
     sh("rm otp.patch", [{cd, OTPRoot}]).
