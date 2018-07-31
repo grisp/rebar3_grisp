@@ -204,14 +204,13 @@ patch_otp(OTPRoot, Drivers, Version) ->
 
 apply_patch(TemplateFile, Drivers, OTPRoot) ->
     debug("Using Template ~p", [TemplateFile]),
-    Template = bbmustache:parse_file(TemplateFile),
     Context = [
         {erts_emulator_makefile_in, [
             {lines, 10 + length(Drivers)},
             {drivers, [[{name, filename:basename(N, ".c")}] || N <- Drivers]}
         ]}
     ],
-    Patch = bbmustache:compile(Template, Context, [{key_type, atom}]),
+    Patch = rebar3_grisp_template:render(TemplateFile, Context),
     ok = file:write_file(filename:join(OTPRoot, "otp.patch"), Patch),
     case sh("git apply otp.patch --reverse --check", [{cd, OTPRoot}, return_on_error]) of
         {ok, _} ->

@@ -182,10 +182,10 @@ resolve_files([File|Files], Root, Resolved) ->
     Relative = prefix(File, Root ++ "/"),
     Name = filename:rootname(Relative, ".mustache"),
     resolve_files(Files, Root, maps:put(
-                                 Name,
-                                 resolve_file(Root, Relative, Name, maps:find(Name, Resolved)),
-                                 Resolved
-                                ));
+        Name,
+        resolve_file(Root, Relative, Name, maps:find(Name, Resolved)),
+        Resolved
+    ));
 resolve_files([], _Root, Resolved) ->
     Resolved.
 
@@ -201,8 +201,7 @@ resolve_file(Root, Source, _Target, _) ->
     {template, filename:join(Root, Source)}.
 
 load_file({template, Source}, Context) ->
-    Parsed = bbmustache:parse_file(Source),
-    bbmustache:compile(Parsed, Context, [{key_type, atom}]);
+    rebar3_grisp_template:render(Source, Context);
 load_file(Source, _Context) ->
     {ok, Binary} = file:read_file(Source),
     Binary.
