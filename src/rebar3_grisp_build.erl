@@ -53,11 +53,7 @@ do(State) ->
     Apps = rebar3_grisp_util:apps(State),
 
     [abort_no_build() || not rebar3_grisp_util:should_build(Config)],
-    TcRoot = try rebar3_grisp_util:get([build, toolchain, directory], Config)
-             catch
-                 error:{key_not_found, _, _} -> abort_no_toolchain()
-             end,
-
+    TcRoot = toolchain_root(Config),
     BuildRoot = rebar3_grisp_util:otp_build_root(State, Version),
     InstallRoot = rebar3_grisp_util:otp_build_install_root(State, Version),
     GrispFolder = rebar3_grisp_util:root(State),
@@ -280,11 +276,27 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
             sh(PostCmd, ScriptOpts)
     end.
 
+toolchain_root(Config) ->
+    Conf = rebar3_grisp_util:get([build, toolchain, directory], Config, error),
+    case os:getenv("GRISP_TOOLCHAIN", Conf) of
+        error ->
+            abort("Please specify the full path to the toolchain directory " ++
+"in your rebar.conf:
+
+{grisp, [
+    ...,
+    {build, [
+        {toolchain, [
+                {directory, \"/PATH/TO/TOOLCHAIN\"}
+        ]}
+    ]}
+]}.
+
+Alternatively, you can set the GRISP_TOOLCHAIN environment variable."
+        );
+        Directory ->
+            Directory
+    end.
+
 abort_no_build() ->
     abort("There was no build section found in your rebar.conf").
-
-abort_no_toolchain() ->
-    abort("Please specify a build toolchain to build the cross compiled OTP release:~n" ++
-              "{build, [~n" ++
-              "{toolchain, [{directory, \"PATH/TO/TOOLCHAIN\"}]}~n" ++
-              "]}~n").
