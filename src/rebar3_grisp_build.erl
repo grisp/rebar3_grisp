@@ -86,8 +86,12 @@ do(State) ->
                          list_to_binary(HashString)),
 
     info("Copying revision string into install dir"),
-    {ok, _} = file:copy(filename:join(TcRoot, "GRISP_TOOLCHAIN_REVISION"),
-                        filename:join(InstallRoot, "GRISP_TOOLCHAIN_REVISION")),
+    RevSource = filename:join(TcRoot, "GRISP_TOOLCHAIN_REVISION"),
+    RevDestination = filename:join(InstallRoot, "GRISP_TOOLCHAIN_REVISION"),
+    case file:copy(RevSource, RevDestination) of
+        {ok, _} -> ok;
+        _       -> abort("Toolchain revision file not found:~n~s", [RevSource])
+    end,
 
     case rebar3_grisp_util:get(tar, Opts, false) of
         true ->
