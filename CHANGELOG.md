@@ -1,5 +1,14 @@
 # Change Log
 
+## [1.2.0](https://github.com/grisp/rebar3_grisp/tree/1.2.0) (2018-07-31)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.5...1.2.0)
+
+**Implemented enhancements:**
+
+- Re-introduce GRISP\_TOOLCHAIN environment variable [\#34](https://github.com/grisp/rebar3_grisp/pull/34) ([eproxus](https://github.com/eproxus))
+- Add version task that prints version number [\#33](https://github.com/grisp/rebar3_grisp/pull/33) ([eproxus](https://github.com/eproxus))
+- Include environment variables in templates [\#32](https://github.com/grisp/rebar3_grisp/pull/32) ([eproxus](https://github.com/eproxus))
+
 ## [1.1.5](https://github.com/grisp/rebar3_grisp/tree/1.1.5) (2018-06-25)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.4...1.1.5)
 
