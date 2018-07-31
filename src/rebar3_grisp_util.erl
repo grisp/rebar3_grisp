@@ -1,6 +1,7 @@
 -module(rebar3_grisp_util).
 
 % API
+-export([version/0]).
 -export([apps/1]).
 -export([debug/1]).
 -export([debug/2]).
@@ -50,6 +51,10 @@
 -include("rebar3_grisp.hrl").
 
 %--- API -----------------------------------------------------------------------
+
+version() ->
+  {ok, Vsn} = application:get_key(rebar3_grisp, vsn),
+  Vsn.
 
 apps(State) ->
     Apps = rebar_state:project_apps(State) ++ rebar_state:all_deps(State),
