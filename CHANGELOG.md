@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.2.1](https://github.com/grisp/rebar3_grisp/tree/1.2.1) (2018-08-01)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.0...1.2.1)
+
+**Fixed bugs:**
+
+- Templates do not work when building [\#35](https://github.com/grisp/rebar3_grisp/issues/35)
+
 ## [1.2.0](https://github.com/grisp/rebar3_grisp/tree/1.2.0) (2018-07-31)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.1.5...1.2.0)
 
