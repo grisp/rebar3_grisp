@@ -57,9 +57,8 @@ version() ->
   Vsn.
 
 apps(State) ->
-    Apps = rebar_state:project_apps(State) ++ rebar_state:all_deps(State),
-    {Grisp, Other} = grisp_app(Apps),
-    Other ++ Grisp.
+    {Grisp, Other} = grisp_app(rebar_state:all_deps(State)),
+    Grisp ++ Other ++ rebar_state:project_apps(State).
 
 debug(Msg) -> debug(Msg, []).
 debug(Msg, Args) -> rebar_api:debug(Msg, Args).
