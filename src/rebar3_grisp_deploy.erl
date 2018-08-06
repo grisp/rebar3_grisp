@@ -79,7 +79,19 @@ do(State) ->
     ERTSPath = filelib:wildcard(filename:join(InstallRoot, "erts-*")),
     "erts-" ++ ERTSVsn = filename:basename(ERTSPath),
     rebar3_grisp_util:ensure_dir(filename:join(Dest, "PLACEHOLDER")),
-    copy_files(State3, RelName, RelVsn, Board, ERTSVsn, Dest, Force),
+
+    try
+        copy_files(State3, RelName, RelVsn, Board, ERTSVsn, Dest, Force)
+    catch
+        throw:{template_error, File, {missing_key, Key}} ->
+            Root = rebar_dir:root_dir(State),
+            {ok, Relative} = rebar_file_utils:path_from_ancestor(File, Root),
+            rebar3_grisp_util:abort(
+                "Error rendering ~s:~nmissing template key: ~s",
+                [Relative, Key]
+            )
+    end,
+
     copy_release(State3, RelName, RelVsn, Dest, Force),
     run_script(post_script, State),
     {ok, State3}.

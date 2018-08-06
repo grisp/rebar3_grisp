@@ -7,10 +7,13 @@
 
 render(File, Context) ->
     Parsed = bbmustache:parse_file(File),
-    bbmustache:compile(Parsed, default(Context), [
-        {key_type, atom},
-        raise_on_context_miss
-    ]).
+    Options = [{key_type, atom}, raise_on_context_miss],
+    try
+        bbmustache:compile(Parsed, default(Context), Options)
+    catch
+        error:{context_missing, {key, Key}} ->
+            throw({template_error, File, {missing_key, Key}})
+    end.
 
 %--- Internal ------------------------------------------------------------------
 
