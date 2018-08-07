@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.2.3](https://github.com/grisp/rebar3_grisp/tree/1.2.3) (2018-08-07)
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.2...1.2.3)
+
+**Implemented enhancements:**
+
+- Print a proper error for missing template keys [\#37](https://github.com/grisp/rebar3_grisp/issues/37)
+
+**Fixed bugs:**
+
+- Default GRiSP sources overwrite custom sources [\#38](https://github.com/grisp/rebar3_grisp/issues/38)
+
 ## [1.2.2](https://github.com/grisp/rebar3_grisp/tree/1.2.2) (2018-08-01)
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.1...1.2.2)
 
