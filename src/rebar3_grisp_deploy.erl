@@ -89,6 +89,13 @@ do(State) ->
             rebar3_grisp_util:abort(
                 "Error rendering ~s:~nmissing template key: ~s",
                 [Relative, Key]
+            );
+        throw:{template_error, File, {include_not_found, Include}} ->
+            Root = rebar_dir:root_dir(State),
+            {ok, Relative} = rebar_file_utils:path_from_ancestor(File, Root),
+            rebar3_grisp_util:abort(
+                "Error rendering ~s:~nmissing include file: ~s",
+                [Relative, Include]
             )
     end,
 

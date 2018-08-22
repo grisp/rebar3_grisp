@@ -12,7 +12,9 @@ render(File, Context) ->
         bbmustache:compile(Parsed, default(Context), Options)
     catch
         error:{context_missing, {key, Key}} ->
-            throw({template_error, File, {missing_key, Key}})
+            throw({template_error, File, {missing_key, Key}});
+        error:{context_missing, {file_not_found, Include}} ->
+            throw({template_error, File, {include_not_found, Include}})
     end.
 
 %--- Internal ------------------------------------------------------------------
