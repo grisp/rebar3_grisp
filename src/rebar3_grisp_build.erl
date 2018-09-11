@@ -75,7 +75,7 @@ do(State) ->
     build(BuildConfig, ErlXCompPath, BuildRoot, InstallRoot, TcRoot, Opts),
 
     info("Computing file hashes"),
-    {Hash, HashString} = rebar3_grisp_util:get_hash(Apps, Board),
+    {Hash, HashString} = grisp_tools_util:source_hash(Apps, Board),
 
     info("Writing hashes to file. Hash: ~p", [Hash]),
     ok = file:write_file(rebar3_grisp_util:otp_hash_listing_path(InstallRoot),
@@ -107,7 +107,8 @@ format_error(Reason) ->
 %--- Internal ------------------------------------------------------------------
 
 copy_files(Apps, Board, BuildRoot) ->
-    {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board),
+    {SystemFiles, DriverFiles} = grisp_tools_util:source_files(Apps, Board),
+    % {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board, Opts),
     ToFrom = maps:merge(SystemFiles, DriverFiles),
     ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom, BuildRoot),
     maps:map(
@@ -157,9 +158,8 @@ ensure_clone(URL, Dir, Version, Opts) ->
 find_file(Apps, Board, PathParts) ->
     Path = filename:join(["grisp", Board | PathParts]),
     FoldFun = fun
-        (App, undefined) ->
-            AppDir = rebar_app_info:dir(App),
-            AbsPath = filename:join([AppDir, Path]),
+        ({_App, Dir}, undefined) ->
+            AbsPath = filename:join([Dir, Path]),
             case filelib:is_file(AbsPath) of
                 true -> AbsPath;
                 false -> undefined
@@ -176,9 +176,8 @@ config_file(Apps, Board, PathParts) ->
 
 config_file(Apps, Board, PathParts, DefaultConf) ->
     Path = filename:join(["grisp", Board | PathParts]),
-    FoldFun = fun(App, Old) ->
-        AppDir = rebar_app_info:dir(App),
-        AbsPath = filename:join([AppDir, Path]),
+    FoldFun = fun({_App, Dir}, Old) ->
+        AbsPath = filename:join([Dir, Path]),
         case filelib:is_file(AbsPath) of
             false -> Old;
             true ->
@@ -210,7 +209,7 @@ apply_patch(TemplateFile, Drivers, OTPRoot) ->
             drivers => [#{name => filename:basename(N, ".c")} || N <- Drivers]
         }
     },
-    Patch = rebar3_grisp_template:render(TemplateFile, Context),
+    Patch = grisp_tools_template:render(TemplateFile, Context),
     ok = file:write_file(filename:join(OTPRoot, "otp.patch"), Patch),
     case sh("git apply otp.patch --reverse --check", [{cd, OTPRoot}, return_on_error]) of
         {ok, _} ->
