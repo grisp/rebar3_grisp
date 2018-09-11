@@ -1,8 +1,8 @@
 {"1.1.0",
-[{<<"grisp_tools">>,{pkg,<<"grisp_tools">>,<<"0.2.0">>},0},
+[{<<"grisp_tools">>,{pkg,<<"grisp_tools">>,<<"0.2.1">>},0},
  {<<"mapz">>,{pkg,<<"mapz">>,<<"0.3.0">>},1}]}.
 [
 {pkg_hash,[
- {<<"grisp_tools">>, <<"555F8384B83DBF3E2C63E177D0E9BB0F46F8347ABE0119D01BD0C500CBC43F6B">>},
+ {<<"grisp_tools">>, <<"DC98958A1006E634BA7128274307957976E84BB9EE6054B93574EC61E80BA6CE">>},
  {<<"mapz">>, <<"438D24746CE5A252101E00B2032EFDF7FC69EB32689D3B805DE5E6DD7F52614F">>}]}
 ].
