@@ -220,7 +220,7 @@ shell_handler(Command, State) ->
     {ok, Output} = rebar3_grisp_util:sh(Command),
     {Output, State}.
 
-release_handler(#{name := Name, version := Version, otp_root := Root}, RState) ->
+release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
     OriginalArgs = rebar_state:command_args(RState),
     RelArgs = rel_args(Name, Version, OriginalArgs),
     debug("ARGS: ~p", [RelArgs]),
@@ -234,7 +234,7 @@ release_handler(#{name := Name, version := Version, otp_root := Root}, RState) -
     ]),
     {ok, RState4} = rebar_prv_release:do(RState3),
     Dir = filename:join([rebar_dir:base_dir(RState), "rel", Name]),
-    {Dir, rebar_state:command_args(RState4, OriginalArgs)}.
+    {#{dir => Dir}, rebar_state:command_args(RState4, OriginalArgs)}.
 
 rel_args(Name, Version, Args) ->
     RelArgs = case lists:splitwith(fun("--") -> false; (_) -> true end, Args) of
