@@ -125,7 +125,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 
 ```erlang
 {grisp, [
-    {otp, [{version, "21"}]},
+    {otp, [{version, "21.0"}]},
     {build, [
         {toolchain, [
             {directory,"/PATH/TO/TOOLCHAIN/grisp-software/rtems-install/rtems/5"}
