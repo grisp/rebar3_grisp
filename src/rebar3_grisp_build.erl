@@ -62,10 +62,10 @@ do(State) ->
     ensure_clone(URL, BuildRoot, Version, Opts),
 
     console("* Copying C code..."),
-    DriverFiles = copy_files(Apps, Board, BuildRoot),
+    {DriverFiles, NIFFiles} = copy_files(Apps, Board, BuildRoot),
 
-    console("* Patching OTP to include sys and driver files"),
-    patch_otp(BuildRoot, maps:keys(DriverFiles), Version),
+    console("* Patching OTP to include sys, driver and NIF files"),
+    patch_otp(BuildRoot, maps:keys(DriverFiles), maps:keys(NIFFiles), Version),
 
     info("Building"),
     ErlXComp = "erl-xcomp-" ++ Version ++ ".conf",
@@ -107,10 +107,11 @@ format_error(Reason) ->
 %--- Internal ------------------------------------------------------------------
 
 copy_files(Apps, Board, BuildRoot) ->
-    {SystemFiles, DriverFiles} = grisp_tools_util:source_files(Apps, Board),
+    {SystemFiles, DriverFiles, NIFFiles} = grisp_tools_util:source_files(Apps, Board),
     % {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board, Opts),
     ToFrom = maps:merge(SystemFiles, DriverFiles),
-    ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom, BuildRoot),
+    ToFrom2 = maps:merge(ToFrom, NIFFiles),
+    ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom2, BuildRoot),
     maps:map(
       fun(Target, Source) ->
               debug("GRiSP - Copy ~p -> ~p", [Source, Target]),
@@ -118,7 +119,7 @@ copy_files(Apps, Board, BuildRoot) ->
       end,
       ToFromAbsolute
      ),
-    DriverFiles.
+    {DriverFiles, NIFFiles}.
 
 tar_file_name(GrispFolder, Version, Hash) ->
     filename:join([GrispFolder, "otp", Version, "package",
@@ -190,32 +191,36 @@ config_file(Apps, Board, PathParts, DefaultConf) ->
     end,
     lists:foldl(FoldFun, DefaultConf, lists:reverse(Apps)).
 
-patch_otp(OTPRoot, Drivers, Version) ->
+patch_otp(OTPRoot, Drivers, NIFs, Version) ->
     debug("Patching OTP Version ~p", [Version]),
     TemplateFile = filename:join([
         code:priv_dir(rebar3_grisp),
         "patches/otp-" ++ Version ++ ".patch.mustache"
     ]),
     case filelib:is_file(TemplateFile) of
-        true  -> apply_patch(TemplateFile, Drivers, OTPRoot);
+        true  -> apply_patch(TemplateFile, Drivers, NIFs, OTPRoot);
         false -> abort("Patch file for OTP ~s missing", [Version])
     end.
 
-apply_patch(TemplateFile, Drivers, OTPRoot) ->
+apply_patch(TemplateFile, Drivers, NIFs, OTPRoot) ->
     debug("Using Template ~p", [TemplateFile]),
     Context = #{
-        erts_emulator_makefile_in => #{
-            lines   => 10 + length(Drivers),
-            drivers => [#{name => filename:basename(N, ".c")} || N <- Drivers]
-        }
-    },
+                erts_emulator_makefile_in =>
+                    #{
+                      driver_lines => 10 + length(Drivers),
+                      nif_lines => 9 + length(NIFs),
+                      drivers => [#{name => filename:basename(N, ".c")} || N <- Drivers],
+                      nifs => [#{name => filename:basename(N, ".c")} || N <- NIFs]
+                     }
+               },
     Patch = grisp_tools_template:render(TemplateFile, Context),
     ok = file:write_file(filename:join(OTPRoot, "otp.patch"), Patch),
-    case sh("git apply otp.patch --reverse --check", [{cd, OTPRoot}, return_on_error]) of
+    case sh("git apply otp.patch --ignore-whitespace --reverse --check",
+            [{cd, OTPRoot}, return_on_error]) of
         {ok, _} ->
             console("  (skipped, already patched)");
         {error, {1, _}} ->
-            sh("git apply otp.patch", [{cd, OTPRoot}])
+            sh("git apply --ignore-whitespace otp.patch", [{cd, OTPRoot}])
     end,
     sh("rm otp.patch", [{cd, OTPRoot}]).
 
