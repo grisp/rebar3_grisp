@@ -95,7 +95,7 @@ or shorter:
 rebar3 grisp deploy -n mygrispproject -v 0.1.0
 ```
 
-Above command will try to download a crosscompiled OTP version from our CDN and unpack it. In many usecases this will be enough. If you want to add own port drivers in C you will have to build your own toolchain and OTP, see below.
+Above command will try to download a crosscompiled OTP version from our CDN and unpack it. In many usecases this will be enough. If you want to add own port drivers or NIFs in C you will have to build your own toolchain and OTP, see below.
 
 Run `rebar3 help grisp deploy` for information on all arguments.
 
@@ -139,7 +139,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 
 Then execute `rebar3 grisp build`. This will take some time, because Erlang/OTP is cross-compiled for the GRiSP board.
 
-You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you changed or wrote new drivers in C. If you need to build OTP for a second time and just changed files you can speed it up by using `rebar3 grisp build --configure false`. Each time you add new C files you will need to run configure again, because this tool will apply a patch to a makefile for each C driver and system file.
+You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you changed or wrote new drivers in C. If you need to build OTP for a second time and just changed files you can speed it up by using `rebar3 grisp build --configure false`. Each time you add new C files you will need to run configure again, because this tool will apply a patch to a makefile for each C driver, NIF and system file.
 
 You can create the tarballs we use for distribution on our CDN with `rebar3 grisp build --tar true`
 
