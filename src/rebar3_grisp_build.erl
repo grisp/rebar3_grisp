@@ -108,7 +108,9 @@ format_error(Reason) ->
 
 copy_files(Apps, Board, BuildRoot) ->
     {SystemFiles, DriverFiles, NIFFiles} = grisp_tools_util:source_files(Apps, Board),
-    % {SystemFiles, DriverFiles} = rebar3_grisp_util:files_copy_destination(Apps, Board, Opts),
+    debug("Apps ~p, Board ~p~n", [Apps, Board]),
+    debug("Detected the following C files:~nSystemFiles ~p~n, DriverFiles ~p~n, NIFFiles ~p~n", [SystemFiles, DriverFiles, NIFFiles]),
+
     ToFrom = maps:merge(SystemFiles, DriverFiles),
     ToFrom2 = maps:merge(ToFrom, NIFFiles),
     ToFromAbsolute = rebar3_grisp_util:filenames_join_copy_destination(ToFrom2, BuildRoot),

@@ -39,7 +39,7 @@
 %--- API -----------------------------------------------------------------------
 
 apps(RebarState) ->
-    Apps = rebar_state:all_deps(RebarState),
+    Apps = rebar_state:all_deps(RebarState) ++ rebar_state:project_apps(RebarState),
     lists:map(fun(App) ->
         Name = binary_to_atom(rebar_app_info:name(App), utf8),
         {Name, rebar_app_info:dir(App)}
