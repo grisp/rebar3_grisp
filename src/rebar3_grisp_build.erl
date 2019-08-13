@@ -91,7 +91,7 @@ do(State) ->
 
     case rebar3_grisp_util:get(tar, Opts, false) of
         true ->
-            Filename = tar_file_name(GrispFolder, Version, Hash),
+            Filename = tar_file_name(GrispFolder, Board, Version, Hash),
             info("Creating package ~p", [Filename]),
             create_tar(Filename, InstallRoot);
         false -> ok
@@ -123,9 +123,9 @@ copy_files(Apps, Board, BuildRoot) ->
      ),
     {DriverFiles, NIFFiles}.
 
-tar_file_name(GrispFolder, Version, Hash) ->
+tar_file_name(GrispFolder, Board, Version, Hash) ->
     filename:join([GrispFolder, "otp", Version, "package",
-                   rebar3_grisp_util:otp_cache_file_name(Version, Hash)]).
+                   rebar3_grisp_util:otp_cache_file_name(Board, Version, Hash)]).
 
 create_tar(Filename, InstallRoot) ->
     rebar3_grisp_util:ensure_dir(Filename),
