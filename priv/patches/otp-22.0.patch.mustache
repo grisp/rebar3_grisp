@@ -1,11 +1,11 @@
 {{#erts_emulator_makefile_in}}
 diff --git a/erts/emulator/Makefile.in b/erts/emulator/Makefile.in
-index 11e93bcd41..60c63b9937 100644
+index 11e93bcd41..0edeb65a02 100644
 --- a/erts/emulator/Makefile.in
 +++ b/erts/emulator/Makefile.in
-@@ -938,12 +938,{{total_lines}} @@ NIF_OBJS = \
-        $(OBJDIR)/zlib_nif.o \
-        $(ESOCK_NIF_OBJS)
+@@ -938,6 +938,{{nif_lines}} @@ NIF_OBJS = \
+    $(OBJDIR)/zlib_nif.o \
+    $(ESOCK_NIF_OBJS)
  
 +ifeq ($(findstring rtems,$(TARGET)),rtems)
 {{#nifs}}
@@ -15,18 +15,20 @@ index 11e93bcd41..60c63b9937 100644
 +
  ifeq ($(TARGET),win32)
  DRV_OBJS = \
-        $(OBJDIR)/registry_drv.o \
-        $(OBJDIR)/inet_drv.o \
-        $(OBJDIR)/ram_file_drv.o \
-        $(OBJDIR)/ttsl_drv.o
+    $(OBJDIR)/registry_drv.o \
+@@ -975,6 +979,{{driver_lines}} @@ DRV_OBJS = \
+    $(OBJDIR)/ttsl_drv.o
+ endif
+ 
 +
 +ifeq ($(findstring rtems,$(TARGET)),rtems)
 {{#drivers}}
-+       DRV_OBJS += $(OBJDIR)/{{name}}.o
++   DRV_OBJS += $(OBJDIR)/{{name}}.o
 {{/drivers}}
 +endif
 +
- OS_OBJS = \
-        $(OBJDIR)/win_con.o \
-        $(OBJDIR)/dll_sys.o \
+ ifneq ($(STATIC_NIFS),no)
+ STATIC_NIF_LIBS = $(STATIC_NIFS)
+ DEPLIBS += $(STATIC_NIF_LIBS)
+ COMPILE_STATIC_LIBS = yes
 {{/erts_emulator_makefile_in}}
