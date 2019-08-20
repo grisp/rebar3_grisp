@@ -211,6 +211,7 @@ apply_patch(TemplateFile, Drivers, NIFs, OTPRoot) ->
                     #{
                       driver_lines => 10 + length(Drivers),
                       nif_lines => 9 + length(NIFs),
+                      total_lines => 10 + length(Drivers) + 9 + length(NIFs),
                       drivers => [#{name => filename:basename(N, ".c")} || N <- Drivers],
                       nifs => [#{name => filename:basename(N, ".c")} || N <- NIFs]
                      }
