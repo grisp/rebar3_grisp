@@ -206,12 +206,14 @@ patch_otp(OTPRoot, Drivers, NIFs, Version) ->
 
 apply_patch(TemplateFile, Drivers, NIFs, OTPRoot) ->
     debug("Using Template ~p", [TemplateFile]),
+    DrvPatchLineCount = 10 + length(Drivers),
+    NifPatchLineCount = 9 + length(NIFs),
     Context = #{
                 erts_emulator_makefile_in =>
                     #{
-                      driver_lines => 10 + length(Drivers),
-                      nif_lines => 9 + length(NIFs),
-                      total_lines => 10 + length(Drivers) + 9 + length(NIFs),
+                      driver_lines => DrvPatchLineCount,
+                      nif_lines => NifPatchLineCount,
+                      total_lines => DrvPatchLineCount + NifPatchLineCount,
                       drivers => [#{name => filename:basename(N, ".c")} || N <- Drivers],
                       nifs => [#{name => filename:basename(N, ".c")} || N <- NIFs]
                      }
