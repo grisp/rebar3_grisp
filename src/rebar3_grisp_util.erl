@@ -23,7 +23,7 @@
 -export([otp_git/0]).
 -export([board/1]).
 -export([otp_build_root/2]).
--export([otp_cache_file_name/3]).
+-export([otp_cache_file_name/2]).
 -export([otp_build_install_root/2]).
 -export([otp_hash_listing_path/1]).
 -export([merge_config/2]).
@@ -103,8 +103,8 @@ otp_build_root(RebarState, Version) ->
 otp_build_install_root(RebarState, Version) ->
     filename:join([root(RebarState), "otp", Version, "install"]).
 
-otp_cache_file_name(Board, Version, Hash) when is_list(Board), is_list(Version), is_list(Hash) ->
-    Board ++ "_otp_build_" ++ Version ++ "_" ++ Hash ++ ".tar.gz".
+otp_cache_file_name(Version, Hash) when is_list(Version), is_list(Hash) ->
+    "grisp_otp_build_" ++ Version ++ "_" ++ Hash ++ ".tar.gz".
 
 otp_hash_listing_path(InstallRoot) ->
     filename:join([InstallRoot, "GRISP_PACKAGE_FILES"]).
