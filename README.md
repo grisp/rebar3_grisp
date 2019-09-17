@@ -145,3 +145,38 @@ You can create the tarballs we use for distribution on our CDN with `rebar3 gris
 
 The built Erlang distribution and its runtime system is located in the project
 folder, under the path `_grisp/otp/<version>/install`.
+
+## Development
+
+To test the plug-in and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plug-in. This can be useful to test deployments locally before copying them to an SD card:
+
+```sh
+$ rebar3 new grispapp name=grisp_test dest=/tmp/GRISP_SD_CARD
+```
+
+Go into the project folder and prepare the checkout directory used by Rebar 3 for dependency overrides:
+
+```sh
+$ cd grisp_test
+$ mkdir -p _checkouts
+```
+
+### Testing `master`
+
+You need to clone both _rebar3_grisp_ (this repo) and its dependency [_grisp_tools_](https://github.com/grisp/grisp_tools). If you want the latest `master` versions:
+
+```sh
+$ git clone git clone https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
+$ git clone git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+```
+
+### Testing a Specific Branch
+
+Alternatively, clone a specific branch. Replace `$REBAR3_PLUGIN_BRANCH` with the branch name you want from _rebar3_grisp_ and `$GRISP_TOOLS_BRANCH` with the branch name you want from _grisp_tool_:
+
+```sh
+$ git clone git clone --single-branch --branch $REBAR3_PLUGIN_BRANCH https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
+$ git clone git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+```
+
+In case you only need a specific branch of _rebar3_grisp_, you can default to using the `master` version of _grisp_tools_.
