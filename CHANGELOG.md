@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.2.6](https://github.com/grisp/rebar3_grisp/tree/1.2.6) (2019-09-27)
+
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.5...1.2.6)
+
+**Merged pull requests:**
+
+- Update grisp\_tools dependency to 0.2.6 [\#58](https://github.com/grisp/rebar3_grisp/pull/58) ([nextl00p](https://github.com/nextl00p))
+
 ## [1.2.5](https://github.com/grisp/rebar3_grisp/tree/1.2.5) (2019-09-27)
 
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.4...1.2.5)
