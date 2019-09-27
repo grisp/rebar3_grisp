@@ -1,6 +1,6 @@
 {application, rebar3_grisp, [
     {description, "Rebar plugin for GRiSP"},
-    {vsn, "1.2.3"},
+    {vsn, "1.2.4"},
     {registered, []},
     {applications, [
         kernel,
