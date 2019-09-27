@@ -1,8 +1,10 @@
 {"1.1.0",
-[{<<"grisp_tools">>,{pkg,<<"grisp_tools">>,<<"0.2.1">>},0},
+[{<<"bbmustache">>,{pkg,<<"bbmustache">>,<<"1.6.1">>},1},
+ {<<"grisp_tools">>,{pkg,<<"grisp_tools">>,<<"0.2.6">>},0},
  {<<"mapz">>,{pkg,<<"mapz">>,<<"0.3.0">>},1}]}.
 [
 {pkg_hash,[
- {<<"grisp_tools">>, <<"DC98958A1006E634BA7128274307957976E84BB9EE6054B93574EC61E80BA6CE">>},
+ {<<"bbmustache">>, <<"9FB63FA60BD53AFBF47F02E6D8BD6B2BEAFC068E02E20975254DC7461FD4F397">>},
+ {<<"grisp_tools">>, <<"F16A8463C9AAEAC5C6FA4F10DA6C8D688365CE51667595B462F36DC1512C4FCE">>},
  {<<"mapz">>, <<"438D24746CE5A252101E00B2032EFDF7FC69EB32689D3B805DE5E6DD7F52614F">>}]}
 ].
