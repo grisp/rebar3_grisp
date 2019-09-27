@@ -10,10 +10,6 @@
     {env, []},
     {modules, []},
 
-    {maintainers, [
-        "Peer Stritzinger",
-        "Adam Lindberg"
-    ]},
     {licenses, ["Apache 2.0"]},
     {links, [
         {"GitHub",
