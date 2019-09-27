@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.2.5](https://github.com/grisp/rebar3_grisp/tree/1.2.5) (2019-09-27)
+
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.4...1.2.5)
+
+**Merged pull requests:**
+
+- Remove deprecated maintainers section [\#57](https://github.com/grisp/rebar3_grisp/pull/57) ([nextl00p](https://github.com/nextl00p))
+
 ## [1.2.4](https://github.com/grisp/rebar3_grisp/tree/1.2.4) (2019-09-27)
 
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.3...1.2.4)
