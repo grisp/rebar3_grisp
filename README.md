@@ -105,7 +105,7 @@ Run `rebar3 help grisp deploy` for information on all arguments.
 
 ```erlang
 {grisp, [
-    {otp, [{version, "20.2"}]},
+    {otp, [{version, "22.0"}]},
     {deploy, [
         % Path to put deployed release in
         {destination, "/path/to/destination"},
@@ -125,7 +125,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 
 ```erlang
 {grisp, [
-    {otp, [{version, "21.0"}]},
+    {otp, [{version, "22.0"}]},
     {build, [
         {toolchain, [
             {directory,"/PATH/TO/TOOLCHAIN/grisp-software/rtems-install/rtems/5"}
