@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0](https://github.com/grisp/rebar3_grisp/tree/1.3.0) (2020-03-09)
+
+[Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.6...1.3.0)
+
+**Implemented enhancements:**
+
+- Use Erlang 22 by default [\#60](https://github.com/grisp/rebar3_grisp/issues/60)
+
+**Closed issues:**
+
+- Error in build phase [\#55](https://github.com/grisp/rebar3_grisp/issues/55)
+
 ## [1.2.6](https://github.com/grisp/rebar3_grisp/tree/1.2.6) (2019-09-27)
 
 [Full Changelog](https://github.com/grisp/rebar3_grisp/compare/1.2.5...1.2.6)
