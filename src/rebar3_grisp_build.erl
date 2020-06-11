@@ -82,7 +82,7 @@ do(State) ->
                          list_to_binary(HashString)),
 
     info("Copying revision string into install dir"),
-    RevSource = filename:join(TcRoot, "GRISP_TOOLCHAIN_REVISION"),
+    RevSource = filename:join([TcRoot, "rtems/5", "GRISP_TOOLCHAIN_REVISION"]),
     RevDestination = filename:join(InstallRoot, "GRISP_TOOLCHAIN_REVISION"),
     case file:copy(RevSource, RevDestination) of
         {ok, _} -> ok;
@@ -233,7 +233,7 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
     PATH = os:getenv("PATH"),
     AllOpts = [{env, [
                       {"GRISP_TC_ROOT", TcRoot},
-                      {"PATH", TcRoot ++ "/bin:" ++ PATH}
+                      {"PATH", filename:join([TcRoot, "rtems/5/bin"]) ++ ":" ++ PATH}
                      ]}],
     BuildOpts = [{cd, BuildRoot}|AllOpts],
     InstallOpts = [{cd, InstallRoot}|AllOpts],
@@ -244,11 +244,11 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
             sh("./otp_build autoconf", BuildOpts),
             console("* Running configure...  (this may take a while)"),
             sh(
-              "./otp_build configure "
-              "--xcomp-conf=" ++ ErlXComp ++
-                  " --prefix=/",
-              BuildOpts
-             );
+                "./otp_build configure "
+                " --xcomp-conf=" ++ ErlXComp ++
+                " --prefix=/",
+                BuildOpts
+            );
         false ->
             ok
     end,
@@ -276,8 +276,10 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
             ScriptOpts = [
                           {cd, InstallRoot},
                           {env, [
-                                 {"PATH", TcRoot ++ "/bin:" ++ PATH},
-                                 {"ERTS_VER", Ver},
+                                 {"GRISP_TC_ROOT", TcRoot},
+                                 {"PATH", filename:join([TcRoot, "rtems/5/bin"]) ++ ":" ++ PATH},
+                                 {"OTP_ROOT", InstallRoot},
+                                 {"ERTS_VERSION", Ver},
                                  {"BEAM_PATH", Beam}
                                 ]}
                          ],

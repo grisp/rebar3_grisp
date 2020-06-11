@@ -1,3 +1,4 @@
--define(DEFAULT_OTP_VSN, "21.0").
--define(DEFAULT_GRISP_BOARD, "grisp_base").
+-define(DEFAULT_OTP_VSN, "22.3.3").
+-define(DEFAULT_GRISP_BOARD, "grisp2").
 -define(GIT_REMOTE_OTP, "https://github.com/grisp/otp").
+-define(REQUIRED_GRISP_RT_VSN, "1.3.0").
