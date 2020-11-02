@@ -229,7 +229,8 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
         {include_erts, Root},
         {system_libs, Root},
         {extended_start_script, false},
-        {dev_mode, false}
+        {dev_mode, false},
+        {mode, minimal}
         |rebar_state:get(RState, relx, [])
     ]),
     {ok, RState4} = rebar_prv_release:do(RState3),
