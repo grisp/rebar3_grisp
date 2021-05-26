@@ -245,8 +245,24 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
             console("* Running configure...  (this may take a while)"),
             sh(
                 "./otp_build configure "
-                " --xcomp-conf=" ++ ErlXComp ++
-                " --prefix=/",
+                " --prefix=/"
+
+                % Disable apps not built for target
+                " --without-erl_interface"
+                " --without-jinterface"
+                " --without-wx"
+                " --without-et"
+                " --without-debugger"
+                " --without-megaco"
+                " --without-os_mon"
+                " --without-observer"
+                " --without-odbc"
+                " --without-typer"
+                " --without-dialyzer"
+                " --without-hipe"
+                " --without-javac"
+
+                " --xcomp-conf=" ++ ErlXComp,
                 BuildOpts
             );
         false ->
