@@ -224,13 +224,14 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
     OriginalArgs = rebar_state:command_args(RState),
     RelArgs = rel_args(Name, Version, OriginalArgs),
     debug("ARGS: ~p", [RelArgs]),
+    debug("ROOT: ~p", [Root]),
     RState2 = rebar_state:command_args(RState, RelArgs),
     RState3 = rebar_state:set(RState2, relx, [
         {include_erts, Root},
-        {system_libs, Root},
+        {system_libs, filename:join(Root, "lib")},
         {extended_start_script, false},
         {dev_mode, false}
-        |rebar_state:get(RState, relx, [])
+        |rebar_state:get(RState2, relx, [])
     ]),
     {ok, RState4} = rebar_prv_release:do(RState3),
     Dir = filename:join([rebar_dir:base_dir(RState), "rel", Name]),
