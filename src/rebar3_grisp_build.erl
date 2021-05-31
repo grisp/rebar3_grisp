@@ -248,19 +248,19 @@ build(Config, ErlXComp, BuildRoot, InstallRoot, TcRoot, Opts) ->
                 " --prefix=/"
 
                 % Disable apps not built for target
-                " --without-erl_interface"
-                " --without-jinterface"
-                " --without-wx"
-                " --without-et"
                 " --without-debugger"
-                " --without-megaco"
-                " --without-os_mon"
-                " --without-observer"
-                " --without-odbc"
-                " --without-typer"
                 " --without-dialyzer"
+                " --without-erl_interface"
+                " --without-et"
                 " --without-hipe"
                 " --without-javac"
+                " --without-jinterface"
+                " --without-megaco"
+                " --without-observer"
+                " --without-odbc"
+                " --without-os_mon"
+                " --without-typer"
+                " --without-wx"
 
                 " --xcomp-conf=" ++ ErlXComp,
                 BuildOpts
