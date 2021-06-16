@@ -52,7 +52,7 @@ init(State) ->
 do(RState) ->
     Config = rebar3_grisp_util:config(RState),
     OTPVersion = rebar3_grisp_util:otp_version(Config),
-    Board = rebar3_grisp_util:board(Config),
+    Board = rebar3_grisp_util:platform(Config),
     Destination = get_option(destination, [deploy, destination], RState),
     PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
     PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
@@ -68,9 +68,9 @@ do(RState) ->
     try
         State = grisp_tools:deploy(#{
             project_root => ProjectRoot,
-            otp_version => OTPVersion,
-            board => Board,
             apps => Apps,
+            otp_version_requirement => OTPVersion,
+            platform => Board,
             custom_build => rebar3_grisp_util:should_build(Config),
             copy => #{
                 force => Force,
@@ -85,7 +85,7 @@ do(RState) ->
                     name => RelName,
                     version => RelVsn
                 }},
-                shell => {fun shell_handler/2, #{}},
+                shell => {fun rebar3_grisp_handler:shell/3, #{}},
                 release => {fun release_handler/2, RState}
             }),
             scripts => #{
@@ -109,11 +109,6 @@ do(RState) ->
                 "  - There is no pre-built package matching this version:~n"
                 "      ~s",
                 [Version, Hash]
-            );
-        error:{otp_version_mismatch, Target, Current} ->
-            abort(
-                "Current Erlang version (~p) does not match target "
-                "Erlang version (~p)", [Current, Target]
             );
         error:{release_unspecified, _} ->
             abort("Release name and/or version not specified");
@@ -143,22 +138,22 @@ format_error(Reason) ->
 
 event_handler(Event, State) ->
     case Event of
-        {package, {download_progress, _Size}} ->
-            ok;
-        Event ->
-            debug("[rebar3_grisp] ~p", [Event])
+        {package, {download_progress, _Size}} -> ok;
+        Event -> debug("[rebar3_grisp] ~p", [Event])
     end,
     {ok, event_handler1(Event, State)}.
 
+event_handler1([validate, version, {mismatch, Target, Current}], _State) ->
+    abort(
+        "Current Erlang version (~p) does not match target "
+        "Erlang version (~p)", [Current, Target]
+    );
 event_handler1({otp_type, Hash, custom_build}, State) ->
     console("* Using custom OTP (~s)", [short(Hash)]),
     State;
 event_handler1({otp_type, Hash, package}, State) ->
     console("* Downloading pre-built OTP package (~s)", [short(Hash)]),
     State;
-% event_handler1({package, {download_init, _}}, State) ->
-%     console("* Downloading prebuilt OTP package"),
-%     State;
 event_handler1({package, {download_start, Size}}, State) ->
     io:format("    0%"),
     State#{progress => {0, Size}};
@@ -216,10 +211,6 @@ event_handler1({deployment, done}, #{name := Name, version := Vsn} = State) ->
 event_handler1(_Event, State) ->
     State.
 
-shell_handler(Command, State) ->
-    {ok, Output} = rebar3_grisp_util:sh(Command),
-    {Output, State}.
-
 release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
     OriginalArgs = rebar_state:command_args(RState),
     RelArgs = rel_args(Name, Version, OriginalArgs),
@@ -227,8 +218,8 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
     debug("ROOT: ~p", [Root]),
     RState2 = rebar_state:command_args(RState, RelArgs),
     RState3 = rebar_state:set(RState2, relx, [
-        {include_erts, Root},
-        {system_libs, filename:join(Root, "lib")},
+        {include_erts, binary_to_list(Root)},
+        {system_libs, binary_to_list(filename:join(Root, "lib"))},
         {extended_start_script, false},
         {dev_mode, false}
         |rebar_state:get(RState2, relx, [])
