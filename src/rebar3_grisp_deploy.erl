@@ -94,6 +94,7 @@ do(RState) ->
             }
         }),
         #{release := RState2} = grisp_tools:handlers_finalize(State),
+        info("Deployment done"),
         {ok, RState2}
     catch
         error:{could_not_create_dir, Dir, Reason} ->
@@ -125,6 +126,11 @@ do(RState) ->
             abort(
                 "Error rendering ~s:~nmissing include file: ~s",
                 [Relative, Include]
+            );
+        error:{create_dir_failed, Dir, {error, Reason}} ->
+            abort(
+                "Error creating directory ~s: ~s",
+                [Dir, file:format_error(Reason)]
             )
     end.
 
@@ -138,77 +144,73 @@ format_error(Reason) ->
 
 event_handler(Event, State) ->
     case Event of
-        {package, {download_progress, _Size}} -> ok;
-        Event -> debug("[rebar3_grisp] ~p", [Event])
-    end,
-    {ok, event_handler1(Event, State)}.
+        [deploy, package, download|_] ->
+            {ok, download(Event, State)};
+        _ ->
+            event(Event),
+            {ok, State}
+    end.
 
-event_handler1([validate, version, {mismatch, Target, Current}], _State) ->
+event([deploy, validate, version, {mismatch, Target, Current}]) ->
     abort(
         "Current Erlang version (~p) does not match target "
         "Erlang version (~p)", [Current, Target]
     );
-event_handler1({otp_type, Hash, custom_build}, State) ->
-    console("* Using custom OTP (~s)", [short(Hash)]),
-    State;
-event_handler1({otp_type, Hash, package}, State) ->
-    console("* Downloading pre-built OTP package (~s)", [short(Hash)]),
-    State;
-event_handler1({package, {download_start, Size}}, State) ->
+event([deploy, package, {type, {custom_build, Hash}}]) ->
+    console("* Using custom OTP (~s)", [short(Hash)]);
+event([deploy, package, {type, {package, Hash}}]) ->
+    console("* Downloading pre-built OTP package (~s)", [short(Hash)]);
+event([deploy, package, extract]) ->
+    console("* Extracting package");
+event([deploy, package, extract, '_skip']) ->
+    io:format("    (already extracted)~n");
+event([deploy, package, extract, {error, Reason}]) ->
+    abort("Extraction failed: ~p", [Reason]);
+event([deploy, copy, Name, {run, _Script}]) ->
+    console("* Running ~p", [Name]);
+event([deploy, copy, _Name, {result, Output}]) ->
+    case trim(Output) of
+        ""      -> ok;
+        Trimmed -> console(Trimmed)
+    end;
+event([deploy, copy, release, {copy, _Source, _Target}]) ->
+    console("* Copying release...");
+event([deploy, copy, files, {init, _Dest}]) ->
+    console("* Copying files...");
+event([deploy, copy, files, {copy, #{app := App, name := File}}]) ->
+    io:format("    [~p] ~s~n", [App, File]);
+event([deploy, copy, files, {error, {exists, File}}]) ->
+    abort(
+        "Destination ~s already exists (use --force to overwrite)",
+        [File]
+    );
+event(Event) ->
+    debug("[rebar3_grisp] ~p", [Event]).
+
+download([deploy, package, download, {start, Size}], State) ->
     io:format("    0%"),
     State#{progress => {0, Size}};
-event_handler1({package, {download_progress, Current}}, #{progress := {Tens, Total}} = State) ->
+download([deploy, package, download, {progress, Current}], #{progress := {Tens, Total}} = State) ->
     NewTens = round(Current / Total * 10),
     case NewTens > Tens of
         true -> io:format(" ~p%", [NewTens * 10]);
         false -> ok
     end,
     State#{progress => {NewTens, Total}};
-event_handler1({package, {download_complete, _ETag}}, State) ->
+download([deploy, package, download, {complete, _ETag}], State) ->
     io:format(" OK~n"),
     State;
-event_handler1({package, download_cached}, State) ->
-    console("* Cached file is up to date"),
+download([deploy, package, download, '_skip'], State) ->
+    io:format("    (file cached)~n"),
     State;
-event_handler1({package, {http_error, Other}}, State) ->
-    warn("* Download error: ~n~p", [Other]),
-    console("* Using cached file"),
+download([deploy, package, download, {error, Reason}], State) ->
+    warn("Download error: ~n~p", [Reason]),
+    io:format("    (using cached file)~n"),
     State;
-event_handler1({package, http_timeout}, State) ->
-    error("Download timed out"),
+download([deploy, package, download, {progress, _Size}], State) ->
     State;
-event_handler1({package, {extract, up_to_date}}, State) ->
-    console("* Current package up to date"),
-    State;
-event_handler1({package, {extract, {start, _Package}}}, State) ->
-    console("* Extracting package"),
-    State;
-event_handler1({package, {extract_failed, Reason}}, _State) ->
-    abort("Tar extraction failed: ~p", [Reason]);
-event_handler1({deployment, script, Name, {run, _Script}}, State) ->
-    console("* Running ~p", [Name]),
-    State;
-event_handler1({deployment, script, _Name, {result, Output}}, State) ->
-    case trim(Output) of
-        ""      -> ok;
-        Trimmed -> console(Trimmed)
-    end,
-    State;
-event_handler1({deployment, release, {copy, _Source, _Target}}, State) ->
-    console("* Copying release..."),
-    State;
-event_handler1({deployment, {files, {init, _Dest}}}, State) ->
-    console("* Copying files..."),
-    State;
-event_handler1({deployment, files, {copy_error, {exists, File}}}, _State) ->
-    abort(
-        "Destination ~s already exists (use --force to overwrite)",
-        [File]
-    );
-event_handler1({deployment, done}, #{name := Name, version := Vsn} = State) ->
-    info("Deployment of ~s-~s complete", [Name, Vsn]),
-    State;
-event_handler1(_Event, State) ->
+download(Event, State) ->
+    debug("[rebar3_grisp] ~p", [Event]),
     State.
 
 release_handler(#{name := Name, version := Version, erts := Root}, RState) ->

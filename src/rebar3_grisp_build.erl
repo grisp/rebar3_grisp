@@ -156,29 +156,15 @@ event([build, prepare, clean, '_run']) ->
 event([build, prepare, patch]) ->
     io:format("* Patching~n");
 event([build, prepare, patch, {apply, #{app := App, name := File}}]) ->
-    io:format(["    [", atom_to_list(App), "]", File] ++ "~n");
+    io:format("    [~p] ~s~n", [App, File]);
 event([build, prepare, patch, {skip, #{app := App, name := File}}]) ->
-    io:format(["    [", atom_to_list(App), "] ", File, " (already applied, skipping)"] ++ "~n");
-event([build, prepare, patch, '_skip']) ->
-    io:format("    (no patches found)~n");
-event([build, prepare, files]) ->
-    io:format("* Copying files~n");
-event([build, prepare, files, {copy, #{app := App, name := File}}]) ->
-    io:format(["    [", atom_to_list(App), "] ", File] ++ "~n");
-event([build, prepare, files, '_skip']) ->
-    io:format("    (no files found)~n");
-event([build, prepare, drivers]) ->
-    io:format("* Copying drivers~n");
-event([build, prepare, drivers, {copy, #{app := App, name := File}}]) ->
-    io:format(["    [", atom_to_list(App), "] ", File] ++ "~n");
-event([build, prepare, drivers, '_skip']) ->
-    io:format("    (no drivers found)~n");
-event([build, prepare, nifs]) ->
-    io:format("* Copying NIFs~n");
-event([build, prepare, nifs, {copy, #{app := App, name := File}}]) ->
-    io:format(["    [", atom_to_list(App), "] ", File] ++ "~n");
-event([build, prepare, nifs, '_skip']) ->
-    io:format("    (no NIFs found)~n");
+    io:format("    [~p] ~s (already applied, skipping)~n", [App, File]);
+event([build, prepare, copy, Type]) ->
+    io:format("* Copying ~p~n", [Type]);
+event([build, prepare, copy, _Type, '_skip']) ->
+    io:format("    (none found)~n");
+event([build, prepare, copy, _Type, #{app := App, name := File}]) ->
+    io:format("    [~p] ~s~n", [App, File]);
 event([build, compile]) ->
     info("Compiling");
 event([build, compile, configure]) ->
