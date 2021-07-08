@@ -196,12 +196,6 @@ Modify release configuration dynamically
 
 * Initial release.
 
-<!-- [unreleased]: https://github.com/eproxus/mapz/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/eproxus/mapz/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/eproxus/mapz/compare/v0.3.0...v1.0.0
-[0.3.0]: https://github.com/eproxus/mapz/releases/tag/v0.3.0
- -->
-
 [unreleased]: https://github.com/grisp/rebar3_grisp/compare/v1.3.0...HEAD
 [1.3.0]: https://github.com/grisp/rebar3_grisp/compare/1.2.6...1.3.0
 [1.2.6]: https://github.com/grisp/rebar3_grisp/compare/1.2.5...1.2.6
