@@ -177,7 +177,7 @@ event([deploy, copy, release, {copy, _Source, _Target}]) ->
     console("* Copying release...");
 event([deploy, copy, files, {init, _Dest}]) ->
     console("* Copying files...");
-event([deploy, copy, files, {copy, #{app := App, name := File}}]) ->
+event([deploy, copy, files, {copy, #{app := App, target := File}}]) ->
     io:format("    [~p] ~s~n", [App, File]);
 event([deploy, copy, files, {error, {exists, File}}]) ->
     abort(
