@@ -178,10 +178,8 @@ event([build, compile, install]) ->
 event([build, compile, install, hook, post_install, {run, Hook}]) ->
     #{app := App, name := Name} = Hook,
     io:format("    [~p] ~s~n", [App, Name]);
-event([build, tar]) ->
-    io:format("* Packaging~n");
 event([build, tar, {file, File}]) ->
-    io:format("    ~s~n", [File]);
+    io:format("* Packaging~n    ~s~n", [File]);
 event(Event) ->
     case lists:last(Event) of
         {output, _Output} -> ok; % Output is printed by rebar3_grisp_util
