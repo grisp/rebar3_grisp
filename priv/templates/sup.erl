@@ -1,5 +1,5 @@
+% @private
 % @doc {{name}} top level supervisor.
-% @end
 -module({{name}}_sup).
 
 -behavior(supervisor).

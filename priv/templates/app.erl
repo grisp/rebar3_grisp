@@ -1,5 +1,4 @@
 % @doc {{name}} public API.
-% @end
 -module({{name}}).
 
 -behavior(application).
