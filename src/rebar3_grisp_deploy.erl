@@ -173,6 +173,8 @@ event([deploy, copy, _Name, {result, Output}]) ->
         ""      -> ok;
         Trimmed -> console(Trimmed)
     end;
+event([deploy, copy, release, {error, target_dir_missing, Target}]) ->
+    abort("Target directory missing: ~s", [Target]);
 event([deploy, copy, release, {copy, _Source, _Target}]) ->
     console("* Copying release...");
 event([deploy, copy, files, {init, _Dest}]) ->
