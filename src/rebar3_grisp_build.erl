@@ -15,6 +15,10 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
+    Config = rebar3_grisp_util:config(State),
+    os:putenv("GRISP", "1"),
+    os:putenv("GRISP_PLATFORM", atom_to_list(rebar3_grisp_util:platform(Config))),
+
     Provider = providers:create([
             {namespace, grisp},
             {name, build},
@@ -134,13 +138,6 @@ event_handler(Event, State) ->
 
 event([build]) ->
     info("Building OTP for GRiSP");
-event([build, validate, apps, {grisp_dir_without_dep, A}]) ->
-    warn(
-        "WARNING! Application ~p has a 'grisp' directory but does not depend"
-        " on the grisp application. Its contents will be ignored when compiling"
-        " Erlang",
-        [A]
-    );
 event([build, validate, version]) ->
     io:format("* Resolving OTP version~n");
 event([build, validate, version, {selected, Version, Target}]) ->

@@ -21,6 +21,10 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
+    Config = rebar3_grisp_util:config(State),
+    os:putenv("GRISP", "1"),
+    os:putenv("GRISP_PLATFORM", atom_to_list(rebar3_grisp_util:platform(Config))),
+
     Provider = providers:create([
             {namespace, grisp},
             {name, deploy},
