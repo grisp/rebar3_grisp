@@ -107,7 +107,7 @@ board(Config) ->
     get([board], Config, ?DEFAULT_GRISP_BOARD).
 
 platform(Config) ->
-    get([platform], Config, fun() -> board(Config) end).
+    get([platform], Config, board(Config)).
 
 otp_build_root(RebarState, Version) ->
     filename:join([root(RebarState), "otp", Version, "build"]).
