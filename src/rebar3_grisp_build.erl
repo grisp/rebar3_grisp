@@ -169,6 +169,10 @@ event([build, compile]) ->
     info("Compiling");
 event([build, compile, configure]) ->
     io:format("* Configuring~n");
+event([build, compile, configure, {'_override', download}]) ->
+    io:format("    (forced, fresh download)~n");
+event([build, compile, configure, {'_override', clean}]) ->
+    io:format("    (forced, repository cleaned)~n");
 event([build, compile, configure, '_skip']) ->
     io:format("    (skipped)~n");
 event([build, compile, boot]) ->
