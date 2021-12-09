@@ -9,6 +9,8 @@
 
 %--- Callbacks -----------------------------------------------------------------
 
+% @private
 start(_Type, _Args) -> {{name}}_sup:start_link().
 
+% @private
 stop(_State) -> ok.
