@@ -22,8 +22,6 @@
 -export([root/1]).
 -export([config/1]).
 -export([otp_version/1]).
--export([otp_git/0]).
--export([board/1]).
 -export([platform/1]).
 -export([otp_build_root/2]).
 -export([otp_cache_file_name/2]).
@@ -98,16 +96,23 @@ config(State) ->
 otp_version(Config) ->
     get([otp, version], Config, ?DEFAULT_OTP_VSN).
 
-otp_git() ->
-    ?GIT_REMOTE_OTP.
-
-% TODO: Deprecate!
-board(Config) ->
-    warn("Configuration key 'board' is deprecated, use 'platform' instead."),
-    get([board], Config, ?DEFAULT_GRISP_BOARD).
-
 platform(Config) ->
-    get([platform], Config, board(Config)).
+    try
+        get([platform], Config)
+    catch
+        error:{key_not_found, _, _} ->
+            try
+                Board = get([board], Config),
+                warn(
+                    "Configuration key 'board' is deprecated, use 'platform' "
+                    " instead."
+                ),
+                Board
+            catch
+                error:{key_not_found, _, _} ->
+                    ?DEFAULT_GRISP_BOARD
+            end
+    end.
 
 otp_build_root(RebarState, Version) ->
     filename:join([root(RebarState), "otp", Version, "build"]).

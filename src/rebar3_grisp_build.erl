@@ -134,6 +134,8 @@ event_handler(Event, State) ->
 
 event([build]) ->
     info("Building OTP for GRiSP");
+event([build, {platform, Platform}]) ->
+    io:format("* Platform: ~p~n", [Platform]);
 event([build, validate, apps, {grisp_dir_without_dep, A}]) ->
     warn(
         "WARNING! Application ~p has a 'grisp' directory but does not depend"
