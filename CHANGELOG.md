@@ -7,10 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-* **BREAKING CHANGE:** Require `GRISP_TC_ROOT` for all Erlang version to point
-  to the tool chain root folder and not the subfolder `rtems/5`. If you have
-  configured the setting `grisp.build.toolchain.directory` you need to remove
-  the `rtems/5` postfix if present.
+## [2.0.0] - 2022-02-01
+
+**BREAKING CHANGE:** Require `GRISP_TC_ROOT` for all Erlang version to point
+to the tool chain root folder and not the subfolder `rtems/5`. If you have
+configured the setting `grisp.build.toolchain.directory` you need to remove
+the `rtems/5` postfix if present.
+
+### Changed
+
+- Default platform is now `grisp2`
+
+### Added
+
+- Patch for OTP 23.3.4
+
+### Fixed
+
+- Don't build unused apps
+- Enhanced build logging
+- Use correct `system_libs` path for rebar3 3.14+
 
 ## [1.3.0] - 2020-03-09
 
@@ -196,7 +212,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/v1.3.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/grisp/rebar3_grisp/compare/1.3.0...2.0.0
 [1.3.0]: https://github.com/grisp/rebar3_grisp/compare/1.2.6...1.3.0
 [1.2.6]: https://github.com/grisp/rebar3_grisp/compare/1.2.5...1.2.6
 [1.2.5]: https://github.com/grisp/rebar3_grisp/compare/1.2.4...1.2.5
