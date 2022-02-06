@@ -11,4 +11,4 @@ Build
 Deploy
 ------
 
-    $ rebar3 grisp deploy
+    $ rebar3 grisp deploy -n <name> -v <version>
