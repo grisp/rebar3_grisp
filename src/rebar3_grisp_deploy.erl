@@ -58,23 +58,13 @@ do(RState) ->
     PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
 
     {Args, _} = rebar_state:command_parsed_args(RState),
-    RelName = proplists:get_value(relname, Args),
-    RelVsn = proplists:get_value(relvsn, Args),
     Force = proplists:get_value(force, Args, false),
 
     ProjectRoot = rebar_dir:root_dir(RState),
     Apps = rebar3_grisp_util:apps(RState),
 
     try
-        case {RelName, RelVsn} of
-            {undefined,undefined} ->
-                error({params_not_provided, ["-n", "-v"]});
-            {undefined,_} ->
-                error({params_not_provided, ["-n"]});
-            {_,undefined} ->
-                error({params_not_provided, ["-v"]});
-            {_,_} -> ok
-        end,
+        {RelName, RelVsn} = select_release(Args, RState),
         State = grisp_tools:deploy(#{
             project_root => ProjectRoot,
             apps => Apps,
@@ -106,8 +96,28 @@ do(RState) ->
         info("Deployment done"),
         {ok, RState2}
     catch
-        error:{params_not_provided, Param} ->
-            abort("Required parameter(s) ~p not provided.~n", [Param]);
+        error:{release_not_selected, [Rel|_]} ->
+            {Name, Version} = element(2, Rel),
+            abort(
+                "Multiple releases defined!~n"
+                "You must specify a name and version with -n and -v. Example:~n"
+                "~n"
+                "    rebar3 grisp release -n ~p -v ~s~n",
+                [Name, Version]
+            );
+        error:no_release_configured ->
+            App = rebar_app_info:name(hd(rebar_state:project_apps(RState))),
+            abort(
+                "No release configured! Deploy aborted~n"
+                "~n"
+                "You must specify at least one release in 'rebar.config' to be "
+                "able to deploy~nyour project. Example:~n"
+                "~n"
+                "    {relx,~n"
+                "        {~s, \"0.1.0\", [~s]}~n"
+                "    }.~n",
+                [App, App]
+            );
         error:{could_not_create_dir, Dir, Reason} ->
             abort("Could not create directory ~s:~n  ~p", [Dir, Reason]);
         error:{could_not_delete_file, File, Reason} ->
@@ -151,7 +161,7 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 
-% TODO: Add state to event handler
+% grisp_tools Events
 
 event_handler(Event, State) ->
     case Event of
@@ -200,6 +210,8 @@ event([deploy, copy, files, {error, {exists, File}}]) ->
 event(Event) ->
     debug("[rebar3_grisp] ~p", [Event]).
 
+% grisp_tools Handlers
+
 download([deploy, package, download, {start, Size}], State) ->
     io:format("    0%"),
     State#{progress => {0, Size}};
@@ -242,6 +254,31 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
     {ok, RState4} = rebar_prv_release:do(RState3),
     Dir = filename:join([rebar_dir:base_dir(RState), "rel", Name]),
     {#{dir => Dir}, rebar_state:command_args(RState4, OriginalArgs)}.
+
+% Utility functions
+
+select_release(Args, RState) ->
+    Relx = rebar_state:get(RState, relx, []),
+
+    Releases = [Release || Release <- Relx, element(1, Release) == 'release'],
+
+    case Releases of
+        [Release] ->
+            {RelName, RelVsn} = element(2, Release),
+            {atom_to_list(RelName), RelVsn};
+        [_|_] ->
+            RelName = proplists:get_value(relname, Args),
+            RelVsn = proplists:get_value(relvsn, Args),
+
+            case {RelName, RelVsn} of
+                {N, V} when N == undefined; V == undefined ->
+                    error({release_not_selected, Releases});
+                Other ->
+                    Other
+            end;
+        [] ->
+            error(no_release_configured)
+    end.
 
 rel_args(Name, Version, Args) ->
     RelArgs = case lists:splitwith(fun("--") -> false; (_) -> true end, Args) of
