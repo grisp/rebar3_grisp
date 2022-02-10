@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `deploy` task no longer requires specifying release name and version if there
+  is only one release.
+
 ## [2.0.0] - 2022-02-01
 
 **BREAKING CHANGE:** Require `GRISP_TC_ROOT` for all Erlang version to point
