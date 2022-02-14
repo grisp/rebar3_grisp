@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2022-02-14
+
 ### Added
 
 - `rebar3 grisp package list` task that lists pre-built OTP package versions.
@@ -15,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `deploy` task no longer requires specifying release name and version if there
   is only one release.
+
+### Fixed
+
+- Template rendering no longer crashes when environment variables contain
+  unicode (#42)
 
 ## [2.0.0] - 2022-02-01
 
@@ -221,7 +228,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/v2.0.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.1.0...HEAD
+[2.1.0]: https://github.com/grisp/rebar3_grisp/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/grisp/rebar3_grisp/compare/1.3.0...2.0.0
 [1.3.0]: https://github.com/grisp/rebar3_grisp/compare/1.2.6...1.3.0
 [1.2.6]: https://github.com/grisp/rebar3_grisp/compare/1.2.5...1.2.6
