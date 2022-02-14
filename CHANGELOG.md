@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `rebar3 grisp package list` task that lists pre-built OTP package versions.
+
 ### Changed
 
 - `deploy` task no longer requires specifying release name and version if there
