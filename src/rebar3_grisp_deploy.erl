@@ -128,7 +128,7 @@ do(RState) ->
                 "Possible causes:~n"
                 "  - You have custom C sources and need to do a manual build:~n"
                 "      rebar3 grisp build~n"
-                "  - There is no pre-built package matching this version:~n"
+                "  - There is no pre-built package matching this hash:~n"
                 "      ~s",
                 [Version, Hash]
             );
@@ -177,6 +177,8 @@ event([deploy, validate, version, {mismatch, Target, Current}]) ->
         "Current Erlang version (~p) does not match target "
         "Erlang version (~p)", [Current, Target]
     );
+event([deploy, collect, {hash, Hash, Index}]) ->
+    debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([deploy, package, {type, {custom_build, Hash}}]) ->
     console("* Using custom OTP (~s)", [short(Hash)]);
 event([deploy, package, {type, {package, Hash}}]) ->

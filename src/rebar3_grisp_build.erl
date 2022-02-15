@@ -147,6 +147,8 @@ event([build, validate, version]) ->
     io:format("* Resolving OTP version~n");
 event([build, validate, version, {selected, Version, Target}]) ->
     io:format("    Selected version ~s (requirement was ~s)~n", [Version, Target]);
+event([build, collect, {hash, Hash, Index}]) ->
+    debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([build, download]) ->
     io:format("* Downloading~n");
 event([build, download, '_skip']) ->
