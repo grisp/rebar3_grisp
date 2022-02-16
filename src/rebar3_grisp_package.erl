@@ -34,7 +34,8 @@ init(State) ->
             {deps, [{default, install_deps}]},
             {example, "rebar3 grisp " ++ atom_to_list(?TASK)},
             {opts, [
-                {platform, $p, "platform", string, "Platform to list packages for"}
+                {platform, $p, "platform", string, "Platform to list packages for"},
+                {hash, $x, "hash", {boolean, false}, "List package hashes"}
             ]},
             {profiles, [grisp]},
             {short_desc, "Pre-built package tasks"},
@@ -49,9 +50,7 @@ init(State) ->
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(RState) ->
-
     {Args, _Rest} = ParsedArgs = rebar_state:command_parsed_args(RState),
-
     RState2 = case proplists:get_value(help, Args) of
         true ->
             task_help(proplists:get_value(task, Args), ParsedArgs, RState);
@@ -73,6 +72,7 @@ task_help("list", _Args, RState) ->
         "Usage: rebar3 grisp packages list [--platform <platform>]~n"
         "~n"
         "  -p, --platform  Platform to list packages for~n"
+        "  -x, --hash      List package hashes [default: false]~n"
     ),
     RState;
 task_help(undefined, _Args, RState) ->
@@ -88,7 +88,12 @@ task_run("list", {Args, _Rest}, RState) ->
         platform => Platform
     }),
     info("GRiSP pre-built OTP versions for platform '~p'", [Platform]),
-    [console("~s", [V]) || V <- Versions],
+    case proplists:get_bool(hash, Args) of
+        false ->
+            [console("~s", [VS]) || VS <- lists:usort([V || #{version := V} <- Versions])];
+        true ->
+            [console("~s\t~s", [V, H]) || #{version := V, hash := H} <- Versions]
+    end,
     RState;
 task_run(Task, _Args, _State) ->
     abort("~p: unknown task: ~s", [?TASK, Task]).
