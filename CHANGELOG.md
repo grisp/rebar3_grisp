@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `rebar3 grisp package list` can now take a `--hash` flag that prints all hash versions of a package
 
+### Changed
+
+- Deploying without a custom OTP build will correctly pick a version from
+  existing pre-built packages or show a proper error
+
 ## [2.1.0] - 2022-02-14
 
 ### Added

@@ -63,6 +63,8 @@ do(RState) ->
     ProjectRoot = rebar_dir:root_dir(RState),
     Apps = rebar3_grisp_util:apps(RState),
 
+    CustomBuild = rebar3_grisp_util:should_build(Config),
+
     try
         {RelName, RelVsn} = select_release(Args, RState),
         State = grisp_tools:deploy(#{
@@ -70,7 +72,7 @@ do(RState) ->
             apps => Apps,
             otp_version_requirement => OTPVersion,
             platform => Board,
-            custom_build => rebar3_grisp_util:should_build(Config),
+            custom_build => CustomBuild,
             copy => #{
                 force => Force,
                 destination => Destination
@@ -152,7 +154,29 @@ do(RState) ->
             abort(
                 "Error creating directory ~s: ~s",
                 [Dir, file:format_error(Reason)]
-            )
+            );
+        error:{otp_version_not_found, Configured} ->
+            Error = "Could not find an OTP version matching the configured "
+                "version ~p~n"
+                "~n",
+            case CustomBuild of
+                false ->
+                    abort(
+                        Error ++
+                        "To see a list of available versions, run:~n"
+                        "~n"
+                        "    rebar3 grisp package list~n",
+                        [Configured]
+                    );
+                true ->
+                    abort(
+                        Error ++
+                        "You need to build OTP before continuing:~n"
+                        "~n"
+                        "    rebar3 grisp build~n",
+                        [Configured]
+                    )
+            end
     end.
 
 -spec format_error(any()) ->  iolist().
@@ -172,6 +196,10 @@ event_handler(Event, State) ->
             {ok, State}
     end.
 
+event([deploy, validate, version]) ->
+    console("* Resolving OTP version");
+event([deploy, validate, version, {selected, Version, Target}]) ->
+    io:format("    ~s (requirement was \"~s\")~n", [Version, Target]);
 event([deploy, validate, version, {mismatch, Target, Current}]) ->
     abort(
         "Current Erlang version (~p) does not match target "
