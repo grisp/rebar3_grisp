@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatically pick the highest version when only the release name is specified
+  during deployment (#64)
+
+### Fixed
+
+- Deploys no longer crash on invalid release names or versions (#68)
+
 ## [2.2.0] - 2022-02-16
 
 ### Added

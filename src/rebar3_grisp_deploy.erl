@@ -98,19 +98,19 @@ do(RState) ->
         info("Deployment done"),
         {ok, RState2}
     catch
-        error:{release_not_selected, [Rel|_]} ->
-            {Name, Version} = element(2, Rel),
+        error:{release_not_selected, [{Name, [Version|_]}|_]} ->
             abort(
                 "Multiple releases defined!~n"
-                "You must specify a name and version with -n and -v. Example:~n"
+                "You must specify a name and optionally a version. Examples:~n"
                 "~n"
-                "    rebar3 grisp release -n ~p -v ~s~n",
-                [Name, Version]
+                "    rebar3 grisp release --relname ~p~n"
+                "    rebar3 grisp release --relname ~p --relvsn ~s~n",
+                [Name, Name, Version]
             );
         error:no_release_configured ->
             App = rebar_app_info:name(hd(rebar_state:project_apps(RState))),
             abort(
-                "No release configured! Deploy aborted~n"
+                "No release configured"
                 "~n"
                 "You must specify at least one release in 'rebar.config' to be "
                 "able to deploy~nyour project. Example:~n"
@@ -119,6 +119,20 @@ do(RState) ->
                 "        {~s, \"0.1.0\", [~s]}~n"
                 "    }.~n",
                 [App, App]
+            );
+        error:{unknown_release_name, {Name, _Version}, Names} ->
+            abort(
+                "Unknown release '~p'~n"
+                "~n"
+                "Must be one of:" ++ [["~n  ", atom_to_list(N)] || N <- Names],
+                [Name]
+            );
+        error:{unknown_release_version, {Name, Version}, Versions} ->
+            abort(
+                "Release '~p' has no version ~s~n"
+                "~n"
+                "Must be one of:" ++ [["~n  ", V] || V <- Versions],
+                [Name, Version]
             );
         error:{could_not_create_dir, Dir, Reason} ->
             abort("Could not create directory ~s:~n  ~p", [Dir, Reason]);
@@ -290,25 +304,44 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
 select_release(Args, RState) ->
     Relx = rebar_state:get(RState, relx, []),
 
-    Releases = [Release || Release <- Relx, element(1, Release) == 'release'],
+    Releases = [element(2, R) || R <- Relx, element(1, R) == 'release'],
+    [error(no_release_configured) || length(Releases) == 0],
 
-    case Releases of
-        [Release] ->
-            {RelName, RelVsn} = element(2, Release),
-            {atom_to_list(RelName), RelVsn};
-        [_|_] ->
-            RelName = proplists:get_value(relname, Args),
-            RelVsn = proplists:get_value(relvsn, Args),
+    RelName = list_to_atom(proplists:get_value(relname, Args, "undefined")),
+    RelVsn = proplists:get_value(relvsn, Args),
+    Indexed = index_releases(Releases),
 
-            case {RelName, RelVsn} of
-                {N, V} when N == undefined; V == undefined ->
-                    error({release_not_selected, Releases});
-                Other ->
-                    Other
+    case {{RelName, RelVsn}, lists:keyfind(RelName, 1, Indexed)} of
+        {{undefined, _}, _} when length(Indexed) > 1 ->
+            error({release_not_selected, Indexed});
+        {{undefined, undefined}, _} when length(Indexed) == 1 ->
+            [{Name, [Version|_]}] = Indexed,
+            {Name, Version};
+        {{RelName, undefined}, {RelName, [Version|_]}} ->
+            {RelName, Version};
+        {{RelName, RelVsn} = Release, {RelName, Versions}} ->
+            case lists:member(RelVsn, Versions) of
+                true -> {RelName, RelVsn};
+                false -> error({unknown_release_version, Release, Versions})
             end;
-        [] ->
-            error(no_release_configured)
+        {Release, false} ->
+            error({unknown_release_name, Release, lists:map(fun({N, _}) -> N end, Indexed)})
     end.
+
+index_releases(Releases) ->
+    Index = lists:foldl(fun({Name, Version}, Acc) ->
+        Versions = proplists:get_value(Name, Acc, []),
+        lists:keystore(Name, 1, Acc, {Name, [Version|Versions]})
+        % maps:update_with(Name, fun(L) -> [Version|L] end, [Version], Acc)
+    end, [], Releases),
+    lists:map(fun({Name, Versions}) ->
+        {Name, lists:usort(fun(V1, V2) ->
+            rlx_util:parsed_vsn_lte(
+                rlx_util:parse_vsn(V2), % Highest version first
+                rlx_util:parse_vsn(V1)
+            )
+        end, Versions)}
+    end, Index).
 
 rel_args(Name, Version, Args) ->
     RelArgs = case lists:splitwith(fun("--") -> false; (_) -> true end, Args) of
