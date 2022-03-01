@@ -120,8 +120,7 @@ parse_columns(toolchain, undefined) ->
 parse_columns(Type, Arg) ->
     case Arg of
         [] ->
-            Cs = [["    ", atom_to_binary(C), $\n] || C <- columns(Type)],
-            abort("No columns specified. Must be at least one of:~n~n~s", [Cs]);
+            abort_columns(Type, "No columns specified");
         _ ->
             ok
     end,
@@ -129,7 +128,7 @@ parse_columns(Type, Arg) ->
     lists:foreach(fun(C) ->
         case lists:member(C, columns(Type)) of
             true -> ok;
-            false -> abort("Unknown column: ~p", [C])
+            false -> abort_columns(Type, "Unknown column: ~p", [C])
         end
     end, Columns),
     Columns.
@@ -182,3 +181,8 @@ format_header(String) ->
 
 titlecase(<<"os">>) -> <<"OS">>;
 titlecase(String) -> string:titlecase(String).
+
+abort_columns(Type, Msg) -> abort_columns(Type, Msg, []).
+abort_columns(Type, Msg, Args) ->
+    Cs = lists:join($\n, [["  ", atom_to_binary(C)] || C <- columns(Type)]),
+    abort(Msg ++ "~nValid columns:~n~s", Args ++ [Cs]).
