@@ -9,8 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Automatically pick the highest version when only the release name is specified
-  during deployment (#64)
+- Automatically pick the highest version when only the release name is
+  specified during deployment (#64)
+- `rebar3 grisp package list` can now list both OTP and toolchain packages. In
+  addition, it can display only certain columns.
 
 ### Fixed
 

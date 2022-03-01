@@ -31,11 +31,12 @@ init(State) ->
             {name, ?TASK},
             {module, ?MODULE},
             {bare, true},
-            {deps, [{default, install_deps}]},
+            {deps, []},
             {example, "rebar3 grisp " ++ atom_to_list(?TASK)},
             {opts, [
-                {platform, $p, "platform", string, "Platform to list packages for"},
-                {hash, $x, "hash", {boolean, false}, "List package hashes"}
+                {platform, $p, "platform", {string, "grisp2"}, "Platform to list packages for"},
+                {columns, $c, "columns", string, "List columns to display"},
+                {type, $t, "type", {string, "otp"}, "Package type"}
             ]},
             {profiles, [grisp]},
             {short_desc, "Pre-built package tasks"},
@@ -75,6 +76,13 @@ task_help("list", _Args, RState) ->
         "  -x, --hash      List package hashes [default: false]~n"
     ),
     RState;
+task_help("download", _Args, RState) ->
+    console(
+        "Download packages~n"
+        "~n"
+        "Foo"
+    ),
+    RState;
 task_help(undefined, _Args, RState) ->
     Args = [atom_to_list(A) || A <- [?NAMESPACE, ?TASK]],
     {ok, RState2} = rebar_prv_help:do(rebar_state:command_args(RState, Args)),
@@ -83,20 +91,94 @@ task_help(undefined, _Args, RState) ->
 task_run("list", {Args, _Rest}, RState) ->
     Config = rebar3_grisp_util:config(RState),
     Platform = to_atom(proplists:get_value(platform, Args, rebar3_grisp_util:platform(Config))),
-    Versions = grisp_tools:list_packages(#{
-        type => otp,
+    Type = to_atom(proplists:get_value(type, Args, otp)),
+    case Type of
+        otp ->
+            info("GRiSP pre-built OTP versions for platform '~p'", [Platform]);
+        toolchain ->
+            info("GRiSP pre-built toolchain packages");
+        Other ->
+            abort("Unknown package type: ~p", [Other])
+    end,
+    Files = grisp_tools:list_packages(#{
+        type => Type,
         platform => Platform
     }),
-    info("GRiSP pre-built OTP versions for platform '~p'", [Platform]),
-    case proplists:get_bool(hash, Args) of
-        false ->
-            [console("~s", [VS]) || VS <- lists:usort([V || #{version := V} <- Versions])];
-        true ->
-            [console("~s\t~s", [V, H]) || #{version := V, hash := H} <- Versions]
-    end,
+    Columns = parse_columns(Type, proplists:get_value(columns, Args)),
+    table(format(Files), Columns),
+    RState;
+task_run("download", {Args, _Rest}, RState) ->
+    console("~p", [Args]),
     RState;
 task_run(Task, _Args, _State) ->
     abort("~p: unknown task: ~s", [?TASK, Task]).
 
+parse_columns(otp, undefined) ->
+    [version];
+parse_columns(toolchain, undefined) ->
+    [os, latest, os_version, url];
+parse_columns(Type, Arg) ->
+    case Arg of
+        [] ->
+            Cs = [["    ", atom_to_binary(C), $\n] || C <- columns(Type)],
+            abort("No columns specified. Must be at least one of:~n~n~s", [Cs]);
+        _ ->
+            ok
+    end,
+    Columns = [list_to_atom(C) || C <- string:split(Arg, ",", all)],
+    lists:foreach(fun(C) ->
+        case lists:member(C, columns(Type)) of
+            true -> ok;
+            false -> abort("Unknown column: ~p", [C])
+        end
+    end, Columns),
+    Columns.
+
+columns(otp) -> [version,hash|columns(default)];
+columns(toolchain) -> [os,os_version,revision,latest|columns(default)];
+columns(default) -> [name,size,etag,url,last_modified].
+
 to_atom(Term) when is_atom(Term) -> Term;
 to_atom(Term) when is_list(Term) -> list_to_atom(Term).
+
+format(Files) ->
+    lists:map(fun(#{last_modified := Modified, size := Size} = F) ->
+        F#{
+            last_modified => format_datetime(Modified),
+            size => format_size(Size)
+        }
+    end, Files).
+
+table(Items, Columns) ->
+    Values = fun(X) -> [maps:get(C, X, undefined) || C <- Columns] end,
+    All = lists:usort(fun(A, B) ->
+        Values(A) =< Values(B)
+    end, Items),
+    Table = grid:format(All, #{
+        header => #{format => fun format_header/1},
+        columns => Columns}
+    ),
+    io:format(Table).
+
+format_size(Size) ->
+    format_size(Size / 1.0, ["B", "KiB", "MiB", "GiB", "TiB"]).
+
+format_size(Size, [Unit|Units]) when Size =< 1000; length(Units) == 0 ->
+    Decimals = case trunc(Size) == Size of
+        true -> 0;
+        false -> 1
+    end,
+    iolist_to_binary([float_to_list(Size, [{decimals, Decimals}]), " ", Unit]);
+format_size(Size, [_|Units]) ->
+    format_size(Size / 1024, Units).
+
+format_datetime(DateTime) ->
+    iolist_to_binary(calendar:system_time_to_rfc3339(DateTime)).
+
+format_header(String) ->
+    Words = string:split(String, <<"_">>, all),
+    Formatted = lists:join($ , [titlecase(W) || W <- Words]),
+    grid:cell(cf:format("~!^~s", [Formatted]), string:length(String)).
+
+titlecase(<<"os">>) -> <<"OS">>;
+titlecase(String) -> string:titlecase(String).
