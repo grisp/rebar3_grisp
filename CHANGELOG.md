@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2022-03-01
+
 ### Added
 
 - Automatically pick the highest version when only the release name is
   specified during deployment (#64)
 - `rebar3 grisp package list` can now list both OTP and toolchain packages. In
   addition, it can display only certain columns.
+- OTP Git cloning is now shallow (using `--dethp 1`) which more than halves the
+  download time of OTP sources.
 
 ### Fixed
 
@@ -250,7 +254,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.2.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.2.1...HEAD
+[2.2.1]: https://github.com/grisp/rebar3_grisp/compare/2.2.0...2.2.1
 [2.2.0]: https://github.com/grisp/rebar3_grisp/compare/2.1.0...2.2.0
 [2.1.0]: https://github.com/grisp/rebar3_grisp/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/grisp/rebar3_grisp/compare/1.3.0...2.0.0
