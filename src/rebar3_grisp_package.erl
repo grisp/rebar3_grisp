@@ -149,9 +149,8 @@ format(Files) ->
     end, Files).
 
 table(Items, Columns) ->
-    Values = fun(X) -> [maps:get(C, X, undefined) || C <- Columns] end,
     All = lists:usort(fun(A, B) ->
-        Values(A) =< Values(B)
+        compare(values(A, Columns), values(B, Columns))
     end, Items),
     Table = grid:format(All, #{
         header => #{format => fun format_header/1},
@@ -186,3 +185,19 @@ abort_columns(Type, Msg) -> abort_columns(Type, Msg, []).
 abort_columns(Type, Msg, Args) ->
     Cs = lists:join($\n, [["  ", atom_to_binary(C)] || C <- columns(Type)]),
     abort(Msg ++ "~nValid columns:~n~s", Args ++ [Cs]).
+
+values(Item, Columns) -> [{C, maps:get(C, Item, undefined)} || C <- Columns].
+
+compare([], []) ->
+    true;
+compare([ValueA|ValuesA], [ValueB|ValuesB]) ->
+    lte(ValueA, ValueB) andalso compare(ValuesA, ValuesB).
+
+lte({os_version, A}, {os_version, B}) ->
+    ec_semver:lte(ec_semver:parse(A), ec_semver:parse(B));
+lte({version, A}, {version, B}) ->
+    ec_semver:lte(ec_semver:parse(A), ec_semver:parse(B));
+lte({latest, _A}, {latest, _B}) ->
+    true;
+lte({_, A}, {_, B}) ->
+    A =< B.
