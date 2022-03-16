@@ -47,7 +47,8 @@ do(RState) ->
     {Opts, _Rest} = rebar_state:command_parsed_args(RState),
 
     Config = rebar3_grisp_util:config(RState),
-    [abort_no_build() || not rebar3_grisp_util:should_build(Config)],
+    CustomBuild = rebar3_grisp_util:should_build(Config),
+    [abort_no_build() || not CustomBuild],
 
     Board = rebar3_grisp_util:platform(Config),
     Version = rebar3_grisp_util:otp_version(Config),
@@ -68,6 +69,7 @@ do(RState) ->
             apps => Apps,
             otp_version_requirement => Version,
             platform => Board,
+            custom_build => CustomBuild,
             build => #{
                 flags => Flags
             },
