@@ -91,6 +91,11 @@ do(RState) ->
                 "(missing file: ~s)",
                 [Source]
             );
+        error:{toolchain_root_invalid, Dir} ->
+            abort(
+                "The toolchain dir is not valid: ~p",
+                [Dir]
+            );
         error:{otp_version_not_found, Configured} ->
             abort(
                 "Could not find an OTP version matching the configured "
