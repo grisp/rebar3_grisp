@@ -154,6 +154,10 @@ event([build, validate, version]) ->
     io:format("* Resolving OTP version~n");
 event([build, validate, version, {selected, Version, Target}]) ->
     io:format("    ~s (requirement was \"~s\")~n", [Version, Target]);
+event([build, validate, version, {error, Cmd}]) ->
+    warn("Could not fetch OTP versions from remote: ~s~n",[Cmd]);
+event([build, repo, check, {error, Error}]) ->
+    warn("Repository integrity check failed: ~p ~n", [Error]);
 event([build, collect, {hash, Hash, Index}]) ->
     debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([build, download]) ->

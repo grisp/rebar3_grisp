@@ -10,7 +10,10 @@
 shell(RawCommand, Opts, State) ->
     Command = binary_to_list(iolist_to_binary(RawCommand)),
     debug("sh command:~n~s", [Command]),
-    Result = rebar3_grisp_util:sh(Command, Opts),
+    Result = case lists:member(return_on_error, Opts) of
+        true -> rebar3_grisp_util:sh(Command, Opts);
+        false -> rebar3_grisp_util:sh(Command, [ abort_on_error | Opts])
+    end,
     shell_output(Result),
     {Result, State}.
 
