@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2022-06-07
+
+### Added
+
+- Exact OTP version selection, e.g. '=23.3'
+- Toolchain validation before building
+
+### Changed
+
+- The OTP Git repository is more thoroughly checked for consistency
+
 ### Fixed
 
+- Deploy and build tasks now works offline
+- Extracted packages are cached globally instead of per project
 - Custom builds now correctly uses OTP versions from Git
 - `rebar3 package list` now sorts versions correctly
 
@@ -265,7 +278,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.2.2...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.3.0...HEAD
+[2.3.0]: https://github.com/grisp/rebar3_grisp/compare/2.2.2...2.3.0
 [2.2.2]: https://github.com/grisp/rebar3_grisp/compare/2.2.1...2.2.2
 [2.2.1]: https://github.com/grisp/rebar3_grisp/compare/2.2.0...2.2.1
 [2.2.0]: https://github.com/grisp/rebar3_grisp/compare/2.1.0...2.2.0
