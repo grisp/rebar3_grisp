@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A `--cached` flag to `rebar3 grisp package list` to list only cached
+  packages
+
+### Fixed
+
+- Crash when listing packages
+
 ## [2.3.0] - 2022-06-07
 
 ### Added

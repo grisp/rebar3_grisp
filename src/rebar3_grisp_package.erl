@@ -36,7 +36,8 @@ init(State) ->
             {opts, [
                 {platform, $p, "platform", {string, "grisp2"}, "Platform to list packages for"},
                 {columns, $c, "columns", string, "List columns to display"},
-                {type, $t, "type", {string, "otp"}, "Package type"}
+                {type, $t, "type", {string, "otp"}, "Package type"},
+                {cached, $c, "cached", {boolean, false}, "List only cached packages"}
             ]},
             {profiles, [grisp]},
             {short_desc, "Pre-built package tasks"},
@@ -92,6 +93,7 @@ task_run("list", {Args, _Rest}, RState) ->
     Config = rebar3_grisp_util:config(RState),
     Platform = to_atom(proplists:get_value(platform, Args, rebar3_grisp_util:platform(Config))),
     Type = to_atom(proplists:get_value(type, Args, otp)),
+    Cached = to_atom(proplists:get_value(cached, Args, false)),
     case Type of
         otp ->
             info("GRiSP pre-built OTP versions for platform '~p'", [Platform]);
@@ -100,12 +102,18 @@ task_run("list", {Args, _Rest}, RState) ->
         Other ->
             abort("Unknown package type: ~p", [Other])
     end,
-    Files = grisp_tools:list_packages(#{
-        type => Type,
-        platform => Platform
-    }),
-    Columns = parse_columns(Type, proplists:get_value(columns, Args)),
-    table(format(Files), Columns),
+    try
+        Files = grisp_tools:list_packages(#{
+            type => Type,
+            platform => Platform,
+            source => case Cached of true -> cache; _ -> online end
+        }),
+        Columns = parse_columns(Type, proplists:get_value(columns, Args)),
+        table(format(Files), Columns)
+    catch
+        error:{not_implemented, Type, Source} ->
+            abort("Listing of ~p ~p packages not supported", [Source, Type])
+    end,
     RState;
 task_run("download", {Args, _Rest}, RState) ->
     console("~p", [Args]),
@@ -148,6 +156,8 @@ format(Files) ->
         }
     end, Files).
 
+table([], _Columns) ->
+    warn("No packages found");
 table(Items, Columns) ->
     All = lists:usort(fun(A, B) ->
         compare(values(A, Columns), values(B, Columns))
