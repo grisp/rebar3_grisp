@@ -219,12 +219,14 @@ event([deploy, validate, version, {mismatch, Target, Current}]) ->
         "Current Erlang version (~p) does not match target "
         "Erlang version (~p)", [Current, Target]
     );
+event([deploy, validate, version, {connection_error, Error}]) ->
+    console("    (Could not list packages [error: ~p], using cache)", [Error]);
 event([deploy, collect, {hash, Hash, Index}]) ->
     debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([deploy, package, {type, {custom_build, Hash}}]) ->
     console("* Using custom OTP (~s)", [short(Hash)]);
 event([deploy, package, {type, {package, Hash}}]) ->
-    console("* Downloading pre-built OTP package (~s)", [short(Hash)]);
+    console("* Using pre-built OTP package (~s)", [short(Hash)]);
 event([deploy, package, extract]) ->
     console("* Extracting package");
 event([deploy, package, extract, '_skip']) ->
@@ -257,6 +259,7 @@ event(Event) ->
 % grisp_tools Handlers
 
 download([deploy, package, download, {start, Size}], State) ->
+    console("* Downloading package"),
     io:format("    0%"),
     State#{progress => {0, Size}};
 download([deploy, package, download, {progress, Current}], #{progress := {Tens, Total}} = State) ->
