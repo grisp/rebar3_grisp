@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2022-07-18
+
 ### Added
 
 - A `--cached` flag to `rebar3 grisp package list` to list only cached
   packages
+- Support for OTP 24
 
 ### Fixed
 
