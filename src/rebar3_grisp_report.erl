@@ -111,16 +111,8 @@ event([report, _, write, Filename]) ->
     console("Written -> ~p",[Filename]);
 event([report, tar, Filename]) ->
     console("Created tarball -> ~p",[Filename]);
-event([report, copy, _Name, {result, Output}]) ->
-    case trim(Output) of
-        ""      -> ok;
-        Trimmed -> console(Trimmed)
-    end;
 event(Event) ->
     case lists:last(Event) of
         {output, _Output} -> ok; % Output is printed by rebar3_grisp_util
         _Else -> debug("[rebar3_grisp] ~p", [Event])
     end.
-
-trim(String) ->
-    re:replace(String, "(^[\s\n\t]+|[\s\n\t]+$)", "", [global, {return, list}]).
