@@ -5,6 +5,7 @@
 -export([do/1]).
 -export([format_error/1]).
 
+-import(rebar3_grisp_util, [debug/1]).
 -import(rebar3_grisp_util, [debug/2]).
 -import(rebar3_grisp_util, [info/1]).
 -import(rebar3_grisp_util, [console/1]).
@@ -90,21 +91,25 @@ event_handler(Event, State) ->
     event(Event),
     {ok, State}.
 event([report]) ->
-    console("Grisp report");
-event([report, clean, info, Path]) ->
-    console("======================"),
-    console(io_lib:format("Please check the content of ~s.~n"
-                          "Feel free to remove any private information.",
-                          [Path])),
-    console("----------------------");
-event([report, copy, files, {init, _Dest}]) ->
-    console("* Copied files...");
-event([report, project_settings, files, {copy, Filename}]) ->
+    console("Grisp report"),
+    console("======================");
+event([report, write_report, {new_report, Path}]) ->
+    console("----------------------"),
+    console(io_lib:format(
+        "Check the content of ~s.~n"
+        "Absolute paths have been trimmed for privacy.~n"
+        "Please edit out any private information that might still be present.~n"
+        "When ready, run \"rebar3 grisp report --tar\""
+        " to pack the directory content.",
+        [Path]));
+event([report, _, files, {copy, Filename}]) ->
     console("Copied -> ~p",[Filename]);
 event([report, validate, version]) ->
-    console("* Resolving OTP version");
+    debug("* Resolving OTP version");
 event([report, validate, version, {selected, Version, Target}]) ->
-    io:format("    ~s (requirement was \"~s\")~n", [Version, Target]);
+    debug("    ~s (requirement was \"~s\")~n", [Version, Target]);
+event([report, tar, {error, no_report}]) ->
+    abort("Report directory not found, run without '--tar' first.");
 event([report, collect, {hash, Hash, Index}]) ->
     debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([report, _, write, Filename]) ->
