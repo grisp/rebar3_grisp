@@ -104,6 +104,8 @@ event([report, write_report, {new_report, Path}]) ->
         [Path]));
 event([report, _, files, {copy, Filename}]) ->
     console("Copied -> ~p",[Filename]);
+event([report, _, files, {missing, Filename}]) ->
+    console("Missing -> ~p",[Filename]);
 event([report, validate, version]) ->
     debug("* Resolving OTP version");
 event([report, validate, version, {selected, Version, Target}]) ->
