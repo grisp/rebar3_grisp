@@ -71,6 +71,12 @@ do(RState) ->
             })
         }),
         _ = grisp_tools:handlers_finalize(State),
+        console("----------------------"),
+        console(
+            "Please make sure no private information is contained in ~s~n"
+            "You can make any change you want "
+            "and create a new tarball with \"--tar\"",
+            [ReportDir]),
         info("Done"),
         {ok, RState}
     catch
@@ -93,14 +99,13 @@ event_handler(Event, State) ->
 event([report]) ->
     console("Grisp report"),
     console("======================");
+event([report, write_report, skip]) ->
+    console("Report directory is already present.");
 event([report, write_report, {new_report, Path}]) ->
     console("----------------------"),
     console(io_lib:format(
-        "Check the content of ~s.~n"
-        "Absolute paths have been trimmed for privacy.~n"
-        "Please edit out any private information that might still be present.~n"
-        "When ready, run \"rebar3 grisp report --tar\""
-        " to pack the directory content.",
+        "New report written at ~s.~n"
+        "Absolute paths have been trimmed for privacy.",
         [Path]));
 event([report, _, files, {copy, Filename}]) ->
     console("Copied -> ~s",[Filename]);
@@ -110,13 +115,12 @@ event([report, validate, version]) ->
     debug("* Resolving OTP version");
 event([report, validate, version, {selected, Version, Target}]) ->
     debug("    ~s (requirement was \"~s\")~n", [Version, Target]);
-event([report, tar, {error, no_report}]) ->
-    abort("Report directory not found, run without '--tar' first.");
 event([report, collect, {hash, Hash, Index}]) ->
     debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([report, _, write, Filename]) ->
     console("Written -> ~s",[Filename]);
 event([report, tar, Filename]) ->
+    console("----------------------"),
     console("Created tarball -> ~s",[Filename]);
 event(Event) ->
     case lists:last(Event) of
