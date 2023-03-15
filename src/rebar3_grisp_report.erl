@@ -103,9 +103,9 @@ event([report, write_report, {new_report, Path}]) ->
         " to pack the directory content.",
         [Path]));
 event([report, _, files, {copy, Filename}]) ->
-    console("Copied -> ~p",[Filename]);
+    console("Copied -> ~s",[Filename]);
 event([report, _, files, {missing, Filename}]) ->
-    console("Missing -> ~p",[Filename]);
+    console("Missing -> ~s",[Filename]);
 event([report, validate, version]) ->
     debug("* Resolving OTP version");
 event([report, validate, version, {selected, Version, Target}]) ->
@@ -115,9 +115,9 @@ event([report, tar, {error, no_report}]) ->
 event([report, collect, {hash, Hash, Index}]) ->
     debug("GRiSP hash:~n~s~n~n~p", [Hash, Index]);
 event([report, _, write, Filename]) ->
-    console("Written -> ~p",[Filename]);
+    console("Written -> ~s",[Filename]);
 event([report, tar, Filename]) ->
-    console("Created tarball -> ~p",[Filename]);
+    console("Created tarball -> ~s",[Filename]);
 event(Event) ->
     case lists:last(Event) of
         {output, _Output} -> ok; % Output is printed by rebar3_grisp_util
