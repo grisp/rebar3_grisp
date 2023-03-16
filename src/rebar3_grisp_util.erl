@@ -27,6 +27,7 @@
 -export([otp_cache_file_name/2]).
 -export([otp_build_install_root/2]).
 -export([otp_hash_listing_path/1]).
+-export([report_dir/1]).
 -export([merge_config/2]).
 -export([should_build/1]).
 -export([ensure_dir/1]).
@@ -125,6 +126,9 @@ otp_cache_file_name(Version, Hash) when is_list(Version), is_list(Hash) ->
 
 otp_hash_listing_path(InstallRoot) ->
     filename:join([InstallRoot, "GRISP_PACKAGE_FILES"]).
+
+report_dir(RebarState) ->
+        filename:join([root(RebarState), "report"]).
 
 % TODO: Remove
 merge_config(New, Old) ->
