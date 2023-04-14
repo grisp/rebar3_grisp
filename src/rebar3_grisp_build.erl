@@ -26,6 +26,10 @@ init(State) ->
                 {clean, $c, "clean", {boolean, false},
                     "Completely clean Git repository before building"
                 },
+                {docker, $d, "docker", {boolean, false},
+                "Mounts the entire project as docker volume and uses a docker"
+                " image to build OTP"
+                },
                 {configure, $g, "configure", {boolean, true},
                     "Run autoconf & configure"
                 },
@@ -56,11 +60,14 @@ do(RState) ->
     Apps = rebar3_grisp_util:apps(RState),
 
     ProjectRoot = rebar_dir:root_dir(RState),
-    ToolchainRoot = toolchain_root(Config),
 
     Flags = maps:from_list([
         {F, rebar3_grisp_util:get(F, Opts, D)}
-        || {F, D} <- [{clean, false}, {configure, true}, {tar, false}]
+        || {F, D} <- [
+            {clean, false},
+            {docker, false},
+            {configure, true},
+            {tar, false}]
     ]),
 
     try
@@ -73,9 +80,11 @@ do(RState) ->
             build => #{
                 flags => Flags
             },
-            paths => #{
-                toolchain => ToolchainRoot
-            },
+            paths => case Flags of
+                #{docker := false} ->
+                    #{toolchain => toolchain_root(Config)};
+                _ -> #{}
+            end,
             handlers => grisp_tools:handlers_init(#{
                 event => {fun event_handler/2, #{}},
                 shell => {fun rebar3_grisp_handler:shell/3, #{}}
@@ -126,7 +135,10 @@ toolchain_root(Config) ->
     ]}
 ]}.
 
-Alternatively, you can set the GRISP_TOOLCHAIN environment variable."
+Alternatively, you can set the GRISP_TOOLCHAIN environment variable.
+
+If you don't have a toolchain we provide one in form of a docker image:
+rebar3 grisp build --docker"
         );
         Directory ->
             Directory
