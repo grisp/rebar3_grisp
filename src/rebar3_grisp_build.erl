@@ -83,7 +83,9 @@ do(RState) ->
             paths => case Flags of
                 #{docker := false} ->
                     #{toolchain => toolchain_root(Config)};
-                _ -> #{}
+                _ ->
+                    ensure_docker(),
+                    #{}
             end,
             handlers => grisp_tools:handlers_init(#{
                 event => {fun event_handler/2, #{}},
@@ -142,6 +144,12 @@ rebar3 grisp build --docker"
         );
         Directory ->
             Directory
+    end.
+
+ensure_docker() ->
+    case rebar3_grisp_util:sh("docker info") of
+        {error, _} -> abort("Error while checking for Docker");
+        {ok, _} -> ok
     end.
 
 abort_no_build() ->
