@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New `rebar3 grisp report` command: groups and packs usefull debug information
 about the current grisp project
+- New rebar.config option `{docker, "grisp/grisp2-rtems-toolchain"}` is available for the grisp toolchain. Allows to use a docker image instead of a local installation.
 
 ## [2.4.0] - 2022-07-18
 

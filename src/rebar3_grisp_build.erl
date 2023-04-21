@@ -60,7 +60,10 @@ do(RState) ->
 
     Flags = maps:from_list([
         {F, rebar3_grisp_util:get(F, Opts, D)}
-        || {F, D} <- [{clean, false}, {configure, true}, {tar, false}]
+        || {F, D} <- [
+            {clean, false},
+            {configure, true},
+            {tar, false}]
     ]),
 
     try
@@ -111,26 +114,40 @@ format_error(Reason) ->
 %--- Internal ------------------------------------------------------------------
 
 toolchain_root(Config) ->
-    Conf = rebar3_grisp_util:get([build, toolchain, directory], Config, error),
-    case os:getenv("GRISP_TOOLCHAIN", Conf) of
-        error ->
-            abort("Please specify the full path to the toolchain directory " ++
-"in your rebar.conf:
+    DockerImg = rebar3_grisp_util:get([build, toolchain, docker], Config, error),
+    TCDir = rebar3_grisp_util:get([build, toolchain, directory], Config, error),
+    case os:getenv("GRISP_TOOLCHAIN", TCDir) of
+        error -> case DockerImg of
+            error -> abort_no_toolchain();
+            DockerImage ->
+                ensure_docker(),
+                {docker, DockerImage}
+            end;
+        Directory ->
+            {directory, Directory}
+    end.
+
+ensure_docker() ->
+    case rebar3_grisp_util:sh("docker info",[return_on_error]) of
+        {error, _} -> abort("Docker is not available");
+        {ok, _} -> ok
+    end.
+
+abort_no_toolchain() ->
+    "Please specify the full path to the toolchain directory in your rebar.conf:
 
 {grisp, [
     ...,
     {build, [
         {toolchain, [
                 {directory, \"/PATH/TO/TOOLCHAIN\"}
+                % Or you can use our docker image:
+                {docker, \"grisp/grisp2-rtems-toolchain\"}
         ]}
     ]}
 ]}.
 
-Alternatively, you can set the GRISP_TOOLCHAIN environment variable."
-        );
-        Directory ->
-            Directory
-    end.
+Alternatively, you can set the GRISP_TOOLCHAIN environment variable.".
 
 abort_no_build() ->
     abort("There was no build section found in your rebar.conf").
