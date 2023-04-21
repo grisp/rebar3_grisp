@@ -140,14 +140,23 @@ macOS          11.6.3             https://grisp.s3.amazonaws.com/platforms/grisp
 
 ## Build OTP for GRiSP
 
-Add the path to the toolchain to the `rebar.config` under `grisp` → `build` → `toolchain` → `directory`:
+The fastest way is to use our docker image `grisp/grisp2-rtems-toolchain`:
+
+Add the toolchain image name to the `rebar.config` under `grisp` → `build` → `toolchain` → `docker`
+
+Or if you have a local installation you can use that:
+
+Add the path to the toolchain to the `rebar.config` under `grisp` → `build` → `toolchain` → `directory`
 
 ```erlang
 {grisp, [
-    {otp, [{version, "22.0"}]},
+    {otp, [{version, "25"}]},
     {build, [
         {toolchain, [
-            {directory,"/PATH/TO/TOOLCHAIN-ROOT"}
+            {directory, "/PATH/TO/TOOLCHAIN-ROOT"}
+            % Or use docker
+            {docker, "grisp/grisp2-rtems-toolchain"}
+            % If both are specified, only 'directory' is used
         ]}
     ]},
     {deploy, [
@@ -158,12 +167,16 @@ Add the path to the toolchain to the `rebar.config` under `grisp` → `build` �
 
 Then execute `rebar3 grisp build`. This will take some time, because Erlang/OTP is cross-compiled for the GRiSP board.
 
-You only need to do that again if you updated and rebuilt the `grisp-software` repository or if you changed or wrote new drivers in C. If you need to build OTP for a second time and just changed files you can speed it up by using `rebar3 grisp build --configure false`. Each time you add new C files you will need to run configure again, because this tool will apply a patch to a makefile for each C driver, NIF and system file.
+You only need to do that again if you updated and rebuilt the `grisp2-rtems-toolchain` repository or if you changed or wrote new drivers in C. If you need to build OTP for a second time and just changed files you can speed it up by using `rebar3 grisp build --configure false`. Each time you add new C files you will need to run configure again, because this tool will apply a patch to a makefile for each C driver, NIF and system file.
 
 You can create the tarballs we use for distribution on our CDN with `rebar3 grisp build --tar true`
 
 The built Erlang distribution and its runtime system is located in the project
 folder, under the path `_grisp/otp/<version>/install`.
+
+## Bug reports
+
+You can run `rebar3 grisp report` to gather info about the project configuration. The user can view and edit the generated text files. It's possible to pack them later adding `--tar` to the same command. Providing such report file can speedup debugging and support from the dev team.
 
 ## Development
 
