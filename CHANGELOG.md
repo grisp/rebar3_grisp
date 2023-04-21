@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Added
+## [2.5.0] - 2023-04-21
+
+### Added
 
 - New `rebar3 grisp report` command: groups and packs usefull debug information
 about the current grisp project
 - New rebar.config option `{docker, "grisp/grisp2-rtems-toolchain"}` is available for the grisp toolchain. Allows to use a docker image instead of a local installation.
 
-## Changed
+### Changed
 
 - Set default Erlang version to `"25.2.3"` in grispapp template
 
@@ -301,7 +303,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.4.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.5.0...HEAD
+[2.5.0]: https://github.com/grisp/rebar3_grisp/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/grisp/rebar3_grisp/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/grisp/rebar3_grisp/compare/2.2.2...2.3.0
 [2.2.2]: https://github.com/grisp/rebar3_grisp/compare/2.2.1...2.2.2
