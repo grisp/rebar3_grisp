@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 about the current grisp project
 - New rebar.config option `{docker, "grisp/grisp2-rtems-toolchain"}` is available for the grisp toolchain. Allows to use a docker image instead of a local installation.
 
+## Changed
+
+- Set default Erlang version to `"25.2.3"` in grispapp template
+
 ## [2.4.0] - 2022-07-18
 
 ### Added
