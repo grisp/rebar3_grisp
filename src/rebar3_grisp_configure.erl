@@ -27,7 +27,7 @@ init(State) ->
                  "The name of your GRiSP application"},
                 {yes, $y, "yes", {boolean, false},
                  "Provides all default values"},
-                {version, $v, "version", {string, "25"},
+                {otp_version, $v, "otp_version", {string, "25"},
                  "The OTP version of the GRiSP app"},
                 {network, $n, "network", {boolean, true},
                  "Network configuration files generation"}
@@ -44,10 +44,10 @@ init(State) ->
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(RState) ->
     {ok, _} = application:ensure_all_started(rebar3_grisp),
-    
+
     % TODO Erl version
     % TODO Network configuration
-    
+
     try
         {Opts, _Rest} = rebar_state:command_parsed_args(RState),
         Config = rebar3_grisp_util:config(RState),
@@ -64,7 +64,10 @@ do(RState) ->
 
         Flags = maps:from_list([
                                 {F, rebar3_grisp_util:get(F, Opts, D)}
-                                || {F, D} <- [{name, robot}, {interactive, true}]
+                                || {F, D} <- [
+                                    {name, robot},
+                                    {interactive, true},
+                                    {otp_version, "25"}]
                                ]),
         InitState = #{
             project_root => ProjectRoot,
@@ -79,9 +82,11 @@ do(RState) ->
                 shell => {fun rebar3_grisp_handler:shell/3, #{}}
             }),
             binaries => []},
-        State = grisp_tools_util:weave(InitState, [fun name/1,
-                                                   fun configure_version/1,
-                                                   fun grisp_tools:configure/1]),
+        State = grisp_tools:configure(InitState),
+        % TODO
+        % run or call rebar3 new app NAME
+        % render templates with grisp_tools_templates:render/2
+        % overwrite files in the new project directory
         _ = grisp_tools:handlers_finalize(State),
         {ok, RState}
     catch
@@ -98,15 +103,16 @@ format_error(Reason) ->
 
 
 %--- Internal ------------------------------------------------------------------
-configure_version(State) ->
-    Prompt = "Erlang version",
-    Default = "25",
-    Version = grisp_tools_io:ask(Prompt, string, Default),
-    State.
 
-name(State) ->
-    % TODO
-    State.
+name(#{flags := #{name := Default} = Flags} = State) ->
+    Prompt = "App name",
+    Name = grisp_tools_io:ask(Prompt, string, Default),
+    State#{flags => Flags#{name => Name}}.
+
+configure_version(#{flags := #{otp_version := Default} = Flags} = State) ->
+    Prompt = "Erlang version",
+    Version = grisp_tools_io:ask(Prompt, string, Default),
+    State#{flags => Flags#{otp_version => Version}}.
 
 event_handler(Event, State) ->
     event(Event),
