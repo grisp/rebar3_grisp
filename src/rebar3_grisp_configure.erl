@@ -16,37 +16,26 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
+    Opts = lists:map(fun({_, Key, Type, Descr}) ->
+                             [Flag | _] = atom_to_list(Key),
+                             {Key, Flag, atom_to_list(Key), Type, Descr}
+                     end, grisp_tools_configure:settings()),
     Provider = providers:create([
         {namespace, grisp},
         {name, configure},
         {module, ?MODULE},
         {bare, true},
         {example, "rebar3 grisp configure"},
-        {opts, [
-                {name, $n, "name", {string, "robot"},
-                 "The name of your GRiSP application"},
-                {yes, $y, "yes", {boolean, false},
-                 "Provides all default values"},
-                {otp_version, $v, "otp_version", {string, "25"},
-                 "The OTP version of the GRiSP app"},
-                {network, $n, "network", {boolean, true},
-                 "Network configuration files generation"}
-               ]},
+        {opts, Opts},
         {profiles, [default]},
         {short_desc, "Create and configure a new GRiSP app"},
-        {desc,
-"Create and configure a new GRiSP app using user provided values
-"
-        }
+        {desc, "Create and configure a new GRiSP app with user provided values"}
     ]),
     {ok, rebar_state:add_provider(State, Provider)}.
 
 -spec do(rebar_state:t()) -> {ok, rebar_state:t()} | {error, string()}.
 do(RState) ->
     {ok, _} = application:ensure_all_started(rebar3_grisp),
-
-    % TODO Erl version
-    % TODO Network configuration
 
     try
         {Opts, _Rest} = rebar_state:command_parsed_args(RState),
@@ -63,11 +52,9 @@ do(RState) ->
         ReportDir = rebar3_grisp_util:report_dir(RState),
 
         Flags = maps:from_list([
-                                {F, rebar3_grisp_util:get(F, Opts, D)}
-                                || {F, D} <- [
-                                    {name, robot},
-                                    {interactive, true},
-                                    {otp_version, "25"}]
+                                {Key, rebar3_grisp_util:get(Key, Opts, D)}
+                                || {_, Key, {_, D}, _} <- 
+                                    grisp_tools_configure:settings()
                                ]),
         InitState = #{
             project_root => ProjectRoot,
@@ -103,17 +90,6 @@ format_error(Reason) ->
 
 
 %--- Internal ------------------------------------------------------------------
-
-name(#{flags := #{name := Default} = Flags} = State) ->
-    Prompt = "App name",
-    Name = grisp_tools_io:ask(Prompt, string, Default),
-    State#{flags => Flags#{name => Name}}.
-
-configure_version(#{flags := #{otp_version := Default} = Flags} = State) ->
-    Prompt = "Erlang version",
-    Version = grisp_tools_io:ask(Prompt, string, Default),
-    State#{flags => Flags#{otp_version => Version}}.
-
 event_handler(Event, State) ->
     event(Event),
     {ok, State}.
