@@ -51,15 +51,15 @@ do(RState) ->
 
         ReportDir = rebar3_grisp_util:report_dir(RState),
 
-        Flags = maps:from_list([
-                                {Key, rebar3_grisp_util:get(Key, Opts, D)}
-                                || {_, Key, {_, D}, _} <- 
-                                    grisp_tools_configure:settings()
-                               ]),
+        InitFlags = maps:from_list([
+                                    {Key, rebar3_grisp_util:get(Key, Opts, D)}
+                                    || {_, Key, {_, D}, _} <- 
+                                       grisp_tools_configure:settings()
+                                   ]),
         InitState = #{
             project_root => ProjectRoot,
             report_dir => ReportDir,
-            flags => Flags,
+            flags => InitFlags,
             apps => Apps,
             otp_version_requirement => Version,
             custom_build => CustomBuild,
@@ -72,8 +72,18 @@ do(RState) ->
         State = grisp_tools:configure(InitState),
         % TODO
         % run or call rebar3 new app NAME
+        %   With open port
         % render templates with grisp_tools_templates:render/2
         % overwrite files in the new project directory
+
+        #{flags := Flags} = State,
+        io:format("~p~n", [maps:to_list(Flags)]),
+
+        case maps:get(network, Flags) of
+            false -> rebar_templater:new("grispapp", maps:to_list(Flags), false, RState);
+            true -> rebar_templater:new("grispnetapp", maps:to_list(Flags), false, RState)
+        end,
+
         _ = grisp_tools:handlers_finalize(State),
         {ok, RState}
     catch
