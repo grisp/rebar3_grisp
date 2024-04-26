@@ -55,7 +55,7 @@ do(RState) ->
 
         InitFlags = maps:from_list([
                                     {Key, rebar3_grisp_util:get(Key, Opts, D)}
-                                    || {_, Key, {_, D}, _} <- 
+                                    || {_, Key, {_, D}, _} <-
                                        grisp_tools_configure:settings()
                                    ]),
         InitState = #{
@@ -82,14 +82,9 @@ do(RState) ->
         PrivDir = code:priv_dir(rebar3_grisp),
         TemplatesDir = filename:join(PrivDir, "templates"),
         lists:map(fun({From, To}) ->
-                          FilePath = filename:join(TemplatesDir, From),
-                          case file:read_file(FilePath) of
-                              {ok, Bin} ->
-                                  maybe_write_file(filename:join(Cwd, To), Bin, Flags);
-                              {error, Reason} ->
-                                  error(Reason)
-                          end
-                  end, Files),
+                      FilePath = filename:join(TemplatesDir, From),
+                      maybe_write_file(FilePath, filename:join(Cwd, To), Flags)
+          end, Files),
 
         _ = grisp_tools:handlers_finalize(State),
         {ok, RState}
@@ -124,30 +119,34 @@ templater(#{name := Name} = Flags) ->
      {"common/README.md", Name ++ "/README.md"},
      {"common/otp_app.app.src", Name ++ "/src/" ++ Name ++ ".app.src"},
      {"common/sys.config", Name ++ "/config/sys.config"},
-     {"common/rebar.config", Name ++ "/rebar.config"}] ++ templater_network(Flags).
+     {"common/rebar.config", Name ++ "/rebar.config"}]
+    ++ templater_network(Flags).
 
 templater_network(#{name := Name, network := true} = Flags) ->
-    [{"network/grisp.ini.mustache", Name ++ "/grisp/grisp2/common/deploy/files/grisp.ini.mustache"}]
+    [{"network/grisp.ini.mustache",
+      Name ++ "/grisp/grisp2/common/deploy/files/grisp.ini.mustache"}]
    ++ templater_wifi(Flags)
    ++ templater_grisp_io(Flags);
 templater_network(_) ->
     [].
 
 templater_wifi(#{name := Name, wifi := true}) ->
-    [{"network/wpa_supplicant.conf", Name ++ "/grisp/default/common/deploy/files/wpa_supplicant.conf"}];
+    [{"network/wpa_supplicant.conf",
+      Name ++ "/grisp/default/common/deploy/files/wpa_supplicant.conf"}];
 templater_wifi(_) ->
     [].
 
 templater_grisp_io(#{name := Name, grisp_io := false}) ->
-    [{"network/erl_inetrc", Name ++ "/grisp/default/common/deploy/files/erl_inetrc"}];
+    [{"network/erl_inetrc",
+      Name ++ "/grisp/default/common/deploy/files/erl_inetrc"}];
 templater_grisp_io(_) ->
     [].
 
-maybe_write_file(File, Bin, Params) ->
-    case filelib:is_regular(File) of
+maybe_write_file(In, Out, Params) ->
+    case filelib:is_regular(Out) of
         false ->
-            filelib:ensure_dir(File),
-            FileContent = rebar_templater:render(Bin, Params),
-            file:write_file(File, FileContent);
-        true -> ?INFO("File already exists: ~p~n", [File]) % TODO use the loggin from rebar3
+            filelib:ensure_dir(Out),
+            FileContent = grisp_tools_template:render(In, Params),
+            file:write_file(Out, FileContent);
+        true -> ?INFO("File already exists: ~p~n", [Out])
     end.
