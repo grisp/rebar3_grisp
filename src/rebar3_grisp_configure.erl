@@ -12,6 +12,8 @@
     abort/2
 ]).
 
+-define(INFO(Str, Args), rebar_log:log(info, Str, Args)).
+
 %--- Callbacks -----------------------------------------------------------------
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
@@ -69,27 +71,32 @@ do(RState) ->
                 shell => {fun rebar3_grisp_handler:shell/3, #{}}
             }),
             binaries => []},
+
         State = grisp_tools:configure(InitState),
-        % TODO
-        % run or call rebar3 new app NAME
-        %   With open port
-        % render templates with grisp_tools_templates:render/2
-        % overwrite files in the new project directory
 
         #{flags := Flags} = State,
-        io:format("~p~n", [maps:to_list(Flags)]),
 
-        case maps:get(network, Flags) of
-            false -> rebar_templater:new("grispapp", maps:to_list(Flags), false, RState);
-            true -> rebar_templater:new("grispnetapp", maps:to_list(Flags), false, RState)
-        end,
+        Files = templater(Flags),
+
+        {ok, Cwd} = file:get_cwd(),
+        PrivDir = code:priv_dir(rebar3_grisp),
+        TemplatesDir = filename:join(PrivDir, "templates"),
+        lists:map(fun({From, To}) ->
+                          FilePath = filename:join(TemplatesDir, From),
+                          case file:read_file(FilePath) of
+                              {ok, Bin} ->
+                                  maybe_write_file(filename:join(Cwd, To), Bin, Flags);
+                              {error, Reason} ->
+                                  error(Reason)
+                          end
+                  end, Files),
 
         _ = grisp_tools:handlers_finalize(State),
         {ok, RState}
     catch
         error:E ->
             abort(
-                "Unexpected error: ~p",
+                "Unexpected error: ~p~n",
                 [E]
             )
     end.
@@ -105,3 +112,42 @@ event_handler(Event, State) ->
     {ok, State}.
 event(_) ->
     info("Unexpected event").
+
+-spec templater(map()) -> [{Src, Dest}] when
+      Src  :: string(),
+      Dest :: string().
+templater(#{name := Name} = Flags) ->
+    [{"common/app.erl", Name ++ "/src/" ++ Name ++ ".erl"},
+     {"common/sup.erl", Name ++ "/src/" ++ Name ++ "_sup.erl"},
+     {"common/gitignore", Name ++ "/.gitignore"},
+     {"common/LICENSE", Name ++ "/LICENSE"},
+     {"common/README.md", Name ++ "/README.md"},
+     {"common/otp_app.app.src", Name ++ "/src/" ++ Name ++ ".app.src"},
+     {"common/sys.config", Name ++ "/config/sys.config"},
+     {"common/rebar.config", Name ++ "/rebar.config"}] ++ templater_network(Flags).
+
+templater_network(#{name := Name, network := true} = Flags) ->
+    [{"network/grisp.ini.mustache", Name ++ "/grisp/grisp2/common/deploy/files/grisp.ini.mustache"}]
+   ++ templater_wifi(Flags)
+   ++ templater_grisp_io(Flags);
+templater_network(_) ->
+    [].
+
+templater_wifi(#{name := Name, wifi := true}) ->
+    [{"network/wpa_supplicant.conf", Name ++ "/grisp/default/common/deploy/files/wpa_supplicant.conf"}];
+templater_wifi(_) ->
+    [].
+
+templater_grisp_io(#{name := Name, grisp_io := false}) ->
+    [{"network/erl_inetrc", Name ++ "/grisp/default/common/deploy/files/erl_inetrc"}];
+templater_grisp_io(_) ->
+    [].
+
+maybe_write_file(File, Bin, Params) ->
+    case filelib:is_regular(File) of
+        false ->
+            filelib:ensure_dir(File),
+            FileContent = rebar_templater:render(Bin, Params),
+            file:write_file(File, FileContent);
+        true -> ?INFO("File already exists: ~p~n", [File]) % TODO use the loggin from rebar3
+    end.
