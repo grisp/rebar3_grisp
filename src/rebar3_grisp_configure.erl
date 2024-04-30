@@ -19,8 +19,9 @@
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
     Opts = lists:map(fun({_, Key, Type, Descr}) ->
-                             [Flag | _] = atom_to_list(Key),
-                             {Key, Flag, atom_to_list(Key), Type, Descr}
+                             Long = atom_to_list(Key),
+                             [Short | _] = Long,
+                             {Key, Short, Long, Type, Descr}
                      end, grisp_tools_configure:settings()),
     Provider = providers:create([
         {namespace, grisp},
@@ -41,6 +42,18 @@ do(RState) ->
 
     try
         {Opts, _Rest} = rebar_state:command_parsed_args(RState),
+
+        Provider = providers:get_provider(configure,
+                                          rebar_state:providers(RState),
+                                          grisp),
+        ProviderOpts = lists:map(fun({Key, Short, Long, {Type, _}, Descr}) ->
+                                         {Key, Short, Long, Type, Descr}
+                                 end, providers:opts(Provider)),
+        CmdArgs = rebar_state:command_args(RState),
+        {ok, {UserOpts, _}} = getopt:parse(ProviderOpts,
+                                           lists:join(" ", CmdArgs)),
+        UserOptsMap = maps:from_list(UserOpts),
+
         Config = rebar3_grisp_util:config(RState),
 
         CustomBuild = rebar3_grisp_util:should_build(Config),
@@ -62,6 +75,7 @@ do(RState) ->
             project_root => ProjectRoot,
             report_dir => ReportDir,
             flags => InitFlags,
+            user_opts => UserOptsMap,
             apps => Apps,
             otp_version_requirement => Version,
             custom_build => CustomBuild,
@@ -71,6 +85,13 @@ do(RState) ->
                 shell => {fun rebar3_grisp_handler:shell/3, #{}}
             }),
             binaries => []},
+
+
+        case OptsMap = maps:from_list(Opts) of
+            #{interactive := false} ->
+                check_custom_params(OptsMap, UserOptsMap);
+            _ -> ok
+        end,
 
         State = grisp_tools:configure(InitState),
 
@@ -105,8 +126,37 @@ format_error(Reason) ->
 event_handler(Event, State) ->
     event(Event),
     {ok, State}.
+event({info, Prompt}) ->
+    info(Prompt);
 event(_) ->
     info("Unexpected event").
+
+check_custom_params(OptsMap, _)
+  when not map_get(network, OptsMap) andalso
+       (map_get(wifi, OptsMap) orelse
+        map_get(grisp_io, OptsMap) orelse
+        map_get(epmd, OptsMap)) ->
+    abort("The network configuration needs to be enabled with
+          '--network=true' or '-n true' if you want to setup
+          either wifi, grisp.io or epmd in non-interactive mode", []);
+check_custom_params(OptsMap, UserOptsMap)
+  when not map_get(wifi, OptsMap) andalso
+       (is_map_key(ssid, UserOptsMap) orelse is_map_key(psk, UserOptsMap)) ->
+    abort("The wifi configuration needs to be enabled with
+          '--wifi=true' or '-w true' if you want to setup the ssid or the psk",
+          []);
+check_custom_params(OptsMap, UserOptsMap)
+  when not map_get(grisp_io, OptsMap) andalso is_map_key(token, UserOptsMap) ->
+    abort("The grisp.io configuration needs to be enabled with
+          '--grisp_io=true' or '-g true' if you want to setup the token",
+          []);
+check_custom_params(OptsMap, UserOptsMap)
+  when not map_get(epmd, OptsMap) andalso is_map_key(cookie, UserOptsMap) ->
+    abort("The epmd configuration needs to be enabled with
+          '--epmd=true' or '-e true' if you want to setup the cookie",
+          []);
+check_custom_params(_, _) ->
+    ok.
 
 -spec templater(map()) -> [{Src, Dest}] when
       Src  :: string(),
