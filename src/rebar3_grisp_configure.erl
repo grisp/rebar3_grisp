@@ -18,9 +18,8 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
-    Opts = lists:map(fun({_, Key, Type, Descr}) ->
+    Opts = lists:map(fun({_, {Key, Short}, Type, Descr}) ->
                              Long = atom_to_list(Key),
-                             [Short | _] = Long,
                              {Key, Short, Long, Type, Descr}
                      end, grisp_tools_configure:settings()),
     Provider = providers:create([
@@ -68,7 +67,7 @@ do(RState) ->
 
         InitFlags = maps:from_list([
                                     {Key, rebar3_grisp_util:get(Key, Opts, D)}
-                                    || {_, Key, {_, D}, _} <-
+                                    || {_, {Key, _}, {_, D}, _} <-
                                        grisp_tools_configure:settings()
                                    ]),
         InitState = #{
