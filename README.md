@@ -82,7 +82,7 @@ The specific variables provided by this plug-in are:
 * **`dest`** is the destination path for deployment. This should point to where
   your SD-card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
   is the name of the SD-card partition)
-* **`otp_release`** is the target Erlang/OTP version used on the GRiSP board
+* **`otp_version`** is the target Erlang/OTP version used on the GRiSP board
 * **`network`** specifies if the project contains network configuration files
 * **`wifi`** specifies if the project contains wifi configuration files. (requires `network`)
 * **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
