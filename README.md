@@ -87,8 +87,9 @@ The specific variables provided by this plug-in are:
 * **`wifi`** specifies if the project contains wifi configuration files. (requires `network`)
 * **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
 * **`psk`** is the psk of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
-* **`grisp_io`** specifies if you ant your board to connect and use GRiSP.io. (requires `network`) 
-* **`token`** is your personnal GRiSP.io token. (requires `network` and `grip_io`) 
+* **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`) 
+* **`grisp_io_linking`** specifies if you want your board to link itself to GRiSP.io. (requires `network` and `grisp_io`)
+* **`token`** is your personnal GRiSP.io token. (requires `network`, `grip_io` and `grisp_io_linking`) 
 * **`epmd`** specifies if you want your board to have epmd. (requires `network`) 
 * **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`) 
 

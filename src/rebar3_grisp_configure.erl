@@ -148,9 +148,15 @@ check_custom_params(OptsMap, UserOptsMap)
           '--wifi=true' or '-w true' if you want to setup the ssid or the psk",
           []);
 check_custom_params(OptsMap, UserOptsMap)
-  when not map_get(grisp_io, OptsMap) andalso is_map_key(token, UserOptsMap) ->
-    abort("The grisp.io configuration needs to be enabled with
-          '--grisp_io=true' or '-g true' if you want to setup the token",
+  when not map_get(grisp_io, OptsMap) andalso
+       is_map_key(grisp_io_linking, UserOptsMap) ->
+    abort("The grisp.io integration needs to be enabled with
+          '--grisp_io=true' or '-g true' if you want to activate the linking",
+          []);
+check_custom_params(OptsMap, UserOptsMap)
+  when not map_get(grisp_io_linking, OptsMap) andalso is_map_key(token, UserOptsMap) ->
+    abort("The grisp.io linking configuration needs to be enabled with
+          '--grisp_io_linking=true' or '-l true' if you want to setup the token",
           []);
 check_custom_params(OptsMap, UserOptsMap)
   when not map_get(epmd, OptsMap) andalso is_map_key(cookie, UserOptsMap) ->
