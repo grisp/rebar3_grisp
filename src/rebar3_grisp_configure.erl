@@ -9,10 +9,11 @@
     console/1,
     console/2,
     info/1,
+    info/2,
+    debug/1,
+    debug/2,
     abort/2
 ]).
-
--define(INFO(Str, Args), rebar_log:log(info, Str, Args)).
 
 %--- Callbacks -----------------------------------------------------------------
 
@@ -195,7 +196,9 @@ maybe_write_file(In, Out, Params) ->
     case filelib:is_regular(Out) of
         false ->
             filelib:ensure_dir(Out),
+            debug("Rendering template file: ~p", [In]),
             FileContent = grisp_tools_template:render(In, Params),
+            debug("Writing output file: ~p", [Out]),
             file:write_file(Out, FileContent);
-        true -> ?INFO("File already exists: ~p~n", [Out])
+        true -> info("File already exists: ~p~n", [Out])
     end.
