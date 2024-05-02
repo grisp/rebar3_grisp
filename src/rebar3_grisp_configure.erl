@@ -126,6 +126,8 @@ format_error(Reason) ->
 event_handler(Event, State) ->
     event(Event),
     {ok, State}.
+event({say, Prompt}) ->
+    console(Prompt);
 event({info, Prompt}) ->
     info(Prompt);
 event(_) ->
