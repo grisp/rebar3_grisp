@@ -56,18 +56,57 @@ Prerequisites:
 To create a new GRiSP project:
 
 ```
-rebar3 new grispapp name=mygrispproject dest=/path/to/SD-card
+rebar3 grisp configure
 ```
+
+This command will provide you with a CLI that will guide you in the creation of your GRiSP project.
+
+You can also use the command in a non-interactive way:
+
+```
+rebar3 grisp configure -i false
+```
+
+Unless stated otherwise, the non-interactive option will use the default values to create the GRiSP project. You can overwrite the default values in the command:
+```
+rebar3 grisp configure -i false --name="my_grisp_app" -n true -w true --ssid="mywifi" --psk="wifipsk"
+```
+This command will create a new GRiSP project named "my_grisp_app" with a network (`-n true`) and wifi (`-w true`) configuration already setup. The configuration will use the ssid "mywifi" and the psk "wifipsk".
+
+Note that some options require others. For example, if you want to setup the ssid of the wifi, then you also need to activate the network and wifi configuration (`-n true` and `-w true`).
 
 The specific variables provided by this plug-in are:
 
+* **`interactive`** activate the interactive mode
 * **`name`** is the name of the OTP application
 * **`dest`** is the destination path for deployment. This should point to where
   your SD-card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
   is the name of the SD-card partition)
-* **`otp_release`** is the target Erlang/OTP version used on the GRiSP board
+* **`otp_version`** is the target Erlang/OTP version used on the GRiSP board
+* **`network`** specifies if the project contains network configuration files
+* **`wifi`** specifies if the project contains wifi configuration files. (requires `network`)
+* **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
+* **`psk`** is the psk of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
+* **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`) 
+* **`grisp_io_linking`** specifies if you want your board to link itself to GRiSP.io. (requires `network` and `grisp_io`)
+* **`token`** is your personnal GRiSP.io token. (requires `network`, `grip_io` and `grisp_io_linking`) 
+* **`epmd`** specifies if you want your board to have epmd. (requires `network`) 
+* **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`) 
 
-For a full list of customizable variables, run `rebar3 new help grispapp`.
+Some variables are modfiable only through the command line. These variables are:
+* **`desc`** is the short description of the GRiSP application
+* **`copyright_year`** is the copyright year
+* **`author_name`** is the name of the author of the project
+* **`author_email`** is the email of the author of the project 
+
+For a full list of customizable variables, run `rebar3 help grisp configure`.
+
+In the interactive mode you can also specify a few variables. During the CLI interaction, the questions related to these variable will be skipped. For example:
+
+```
+rebar3 grisp configure --name="mygrispapp"
+```
+Here the CLI won't ask you for the name of your GRiSP project because it's already provided.
 
 ## Compile the project
 
