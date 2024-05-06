@@ -12,7 +12,10 @@
     info/2,
     debug/1,
     debug/2,
-    abort/2
+    abort/1,
+    abort/2,
+    warn/1,
+    warn/2
 ]).
 
 %--- Callbacks -----------------------------------------------------------------
@@ -95,7 +98,7 @@ do(RState) ->
 
         State = grisp_tools:configure(InitState),
 
-        #{flags := Flags} = State,
+        #{flags := Flags, project_exists := ProjectExists} = State,
 
         Files = templater(Flags),
 
@@ -106,6 +109,12 @@ do(RState) ->
                       FilePath = filename:join(TemplatesDir, From),
                       maybe_write_file(FilePath, filename:join(Cwd, To), Flags)
           end, Files),
+
+        case ProjectExists of
+            true -> warn("Warning: The project directory already exists, and existing files were not overwritten.
+                         Please review the files to ensure all configurations are correct");
+            _ -> ok
+        end,
 
         _ = grisp_tools:handlers_finalize(State),
         {ok, RState}
@@ -130,7 +139,10 @@ event({say, Prompt}) ->
     console(Prompt);
 event({info, Prompt}) ->
     info(Prompt);
-event(_) ->
+event({error, Prompt}) ->
+    abort(Prompt);
+event(Event) ->
+    info("Event: ~p", [Event]),
     info("Unexpected event").
 
 check_custom_params(OptsMap, _)
@@ -208,5 +220,5 @@ maybe_write_file(In, Out, Params) ->
             FileContent = grisp_tools_template:render(In, Params),
             debug("Writing output file: ~p", [Out]),
             file:write_file(Out, FileContent);
-        true -> info("File already exists: ~p~n", [Out])
+        true -> warn("File already exists: ~p~n", [Out])
     end.
