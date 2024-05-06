@@ -1,8 +1,8 @@
-{application, {{name}}, [
-    {description, "{{desc}}"},
+{application, {{{name}}}, [
+    {description, "{{{desc}}}"},
     {vsn, "0.1.0"},
     {registered, []},
-    {mod, {{{name}}, []}},
+    {mod, {{{{name}}}, []}},
     {applications, [
         kernel,
         stdlib,

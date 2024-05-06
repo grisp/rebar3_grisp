@@ -1,6 +1,6 @@
 % @private
-% @doc {{name}} top level supervisor.
--module({{name}}_sup).
+% @doc {{{name}}} top level supervisor.
+-module({{{name}}}_sup).
 
 -behavior(supervisor).
 
