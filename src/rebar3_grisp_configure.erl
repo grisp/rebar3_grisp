@@ -105,14 +105,27 @@ do(RState) ->
         {ok, Cwd} = file:get_cwd(),
         PrivDir = code:priv_dir(rebar3_grisp),
         TemplatesDir = filename:join(PrivDir, "templates"),
+        FormatedFlags = maps:map(
+                          fun(_Key, Value) ->
+                             case is_list(Value) of
+                                 true ->
+                                     unicode:characters_to_binary(Value);
+                                 false ->
+                                     Value
+                             end
+                          end, Flags),
         lists:map(fun({From, To}) ->
                       FilePath = filename:join(TemplatesDir, From),
-                      maybe_write_file(FilePath, filename:join(Cwd, To), Flags)
+                      maybe_write_file(FilePath,
+                                       filename:join(Cwd, To),
+                                       FormatedFlags)
           end, Files),
 
         case ProjectExists of
-            true -> warn("Warning: The project directory already exists, and existing files were not overwritten.
-                         Please review the files to ensure all configurations are correct");
+            true -> warn("Warning: The project directory already exists,"
+                         ++ "and existing files were not overwritten."
+                         ++ "Please review the files to ensure all"
+                         ++ "configurations are correct");
             _ -> ok
         end,
 
