@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2024-05-07
+
+### Added
+
+- New `rebar3 grisp configure` command to create a custom GRiSP application. It replaces the command `rebar3 new grispapp` as a new way to create a custom GRiSP application: [#78](https://github.com/grisp/rebar3_grisp/pull/78)
+
+### Removed
+
+- Removed the *grispapp* template: [#78](https://github.com/grisp/rebar3_grisp/pull/78)
+
+### Fixed
+
+- CI update to only test OTP 24 and 25: [#79](https://github.com/grisp/rebar3_grisp/pull/79)
+
 ## [2.5.0] - 2023-04-21
 
 ### Added
@@ -303,7 +317,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.5.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.6.0...HEAD
+[2.6.0]: https://github.com/grisp/rebar3_grisp/compare/2.5.0...2.6.0
 [2.5.0]: https://github.com/grisp/rebar3_grisp/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/grisp/rebar3_grisp/compare/2.3.0...2.4.0
 [2.3.0]: https://github.com/grisp/rebar3_grisp/compare/2.2.2...2.3.0
