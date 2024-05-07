@@ -1,5 +1,5 @@
-% @doc {{name}} public API.
--module({{name}}).
+% @doc {{{name}}} public API.
+-module({{{name}}}).
 
 -behavior(application).
 
@@ -10,7 +10,7 @@
 %--- Callbacks -----------------------------------------------------------------
 
 % @private
-start(_Type, _Args) -> {{name}}_sup:start_link().
+start(_Type, _Args) -> {{{name}}}_sup:start_link().
 
 % @private
 stop(_State) -> ok.
