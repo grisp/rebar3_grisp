@@ -122,10 +122,10 @@ do(RState) ->
           end, Files),
 
         case ProjectExists of
-            true -> warn("Warning: The project directory already exists,"
-                         ++ "and existing files were not overwritten."
-                         ++ "Please review the files to ensure all"
-                         ++ "configurations are correct");
+            true -> warn("Warning: The project directory already exists, "
+                         ++ "and existing files were not overwritten. "
+                         ++ "Please review the files to ensure all "
+                         ++ "configurations are correct. ");
             _ -> ok
         end,
 
