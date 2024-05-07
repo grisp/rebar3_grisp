@@ -73,6 +73,8 @@ rebar3 grisp configure -i false --name="my_grisp_app" -n true -w true --ssid="my
 ```
 This command will create a new GRiSP project named "my_grisp_app" with a network (`-n true`) and wifi (`-w true`) configuration already setup. The configuration will use the ssid "mywifi" and the psk "wifipsk".
 
+
+
 Note that some options require others. For example, if you want to setup the ssid of the wifi, then you also need to activate the network and wifi configuration (`-n true` and `-w true`).
 
 The specific variables provided by this plug-in are:
@@ -99,7 +101,7 @@ Some variables are modfiable only through the command line. These variables are:
 * **`author_name`** is the name of the author of the project
 * **`author_email`** is the email of the author of the project 
 
-For a full list of customizable variables, run `rebar3 help grisp configure`.
+For a full list of customizable variables as well as their short form, run `rebar3 help grisp configure`.
 
 In the interactive mode you can also specify a few variables. During the CLI interaction, the questions related to these variable will be skipped. For example:
 
