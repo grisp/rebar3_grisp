@@ -143,14 +143,16 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 event_handler(Event, State) ->
-    event(Event),
-    {ok, State}.
+    Res = event(Event),
+    {Res, State}.
 event({say, Prompt}) ->
     console(Prompt);
 event({info, Prompt}) ->
     info(Prompt);
 event({error, Prompt}) ->
     abort(Prompt);
+event({ask, Prompt}) ->
+    io:get_line(Prompt);
 event(Event) ->
     info("Event: ~p", [Event]),
     info("Unexpected event").
