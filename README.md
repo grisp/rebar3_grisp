@@ -1,6 +1,27 @@
 # rebar3_grisp
 
-Rebar plug-in for the GRiSP project.
+Rebar plug-in for the GRiSP project. To obtain information about the plugin and
+its tasks, use the following command:
+
+```sh
+rebar3 help grisp [<task>]
+```
+
+📖 **Table of content**
+- [rebar3\_grisp](#rebar3_grisp)
+  - [Installation](#installation)
+    - [Globally](#globally)
+    - [For an Existing Project](#for-an-existing-project)
+  - [Create New Application](#create-new-application)
+  - [Compile the project](#compile-the-project)
+  - [Deploy an Application](#deploy-an-application)
+    - [Configuration](#configuration)
+  - [Listing Packages](#listing-packages)
+  - [Build OTP for GRiSP](#build-otp-for-grisp)
+  - [Bug reports](#bug-reports)
+  - [Development](#development)
+    - [Testing `master`](#testing-master)
+    - [Testing a Specific Branch](#testing-a-specific-branch)
 
 ## Installation
 
