@@ -22,9 +22,8 @@
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
 init(State) ->
-    Opts = lists:map(fun({_, {Key, Short}, Type, Descr}) ->
-                             Long = atom_to_list(Key),
-                             {Key, Short, Long, Type, Descr}
+    Opts = lists:map(fun({Long, Short, TSpec, Desc}) ->
+                         {Long, Short, atom_to_list(Long), TSpec, Desc}
                      end, grisp_tools_configure:settings()),
     Provider = providers:create([
         {namespace, grisp},
@@ -49,8 +48,8 @@ do(RState) ->
         Provider = providers:get_provider(configure,
                                           rebar_state:providers(RState),
                                           grisp),
-        ProviderOpts = lists:map(fun({Key, Short, Long, {Type, _}, Descr}) ->
-                                         {Key, Short, Long, Type, Descr}
+        ProviderOpts = lists:map(fun({Key, Short, Long, {Type, _}, Desc}) ->
+                                         {Key, Short, Long, Type, Desc}
                                  end, providers:opts(Provider)),
         CmdArgs = rebar_state:command_args(RState),
         {ok, {UserOpts, _}} = getopt:parse(ProviderOpts,
@@ -69,11 +68,9 @@ do(RState) ->
 
         ReportDir = rebar3_grisp_util:report_dir(RState),
 
-        InitFlags = maps:from_list([
-                                    {Key, rebar3_grisp_util:get(Key, Opts, D)}
-                                    || {_, {Key, _}, {_, D}, _} <-
-                                       grisp_tools_configure:settings()
-                                   ]),
+        InitFlags = maps:from_list(
+            [{Long, rebar3_grisp_util:get(Long, Opts, D)}
+             || {Long, _, {_, D}, _} <- grisp_tools_configure:settings()]),
         InitState = #{
             project_root => ProjectRoot,
             report_dir => ReportDir,
@@ -146,14 +143,16 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 event_handler(Event, State) ->
-    event(Event),
-    {ok, State}.
+    Res = event(Event),
+    {Res, State}.
 event({say, Prompt}) ->
     console(Prompt);
 event({info, Prompt}) ->
     info(Prompt);
 event({error, Prompt}) ->
     abort(Prompt);
+event({ask, Prompt}) ->
+    io:get_line(Prompt);
 event(Event) ->
     info("Event: ~p", [Event]),
     info("Unexpected event").
