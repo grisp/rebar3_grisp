@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.1] - 2024-06-21
+### Changed
+- Adapation to the new format of the prompt provided by `grisp_tools_configure:settings/0`: [#81](https://github.com/grisp/rebar3_grisp/pull/81)
+- User input are now asked using events for `configure` task: [#81](https://github.com/grisp/rebar3_grisp/pull/81)
+
 ## [2.6.0] - 2024-05-07
 
 ### Added
@@ -317,7 +322,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.6.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.6.1...HEAD
+[2.6.1]: https://github.com/grisp/rebar3_grisp/compare/2.6.0...2.6.1
 [2.6.0]: https://github.com/grisp/rebar3_grisp/compare/2.5.0...2.6.0
 [2.5.0]: https://github.com/grisp/rebar3_grisp/compare/2.4.0...2.5.0
 [2.4.0]: https://github.com/grisp/rebar3_grisp/compare/2.3.0...2.4.0
