@@ -26,7 +26,7 @@ init(State) ->
             {name, deploy},
             {module, ?MODULE},
             {bare, true},
-            {deps, [{default, install_deps}, {default, compile}]},
+            {deps, [{default, install_deps}, {default, lock}]},
             {example, "rebar3 grisp deploy"},
             {opts, [
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
@@ -65,8 +65,10 @@ do(RState) ->
 
     CustomBuild = rebar3_grisp_util:should_build(Config),
 
+    RState2 = compile_for_grisp(Config, RState),
+
     try
-        {RelName, RelVsn} = select_release(Args, RState),
+        {RelName, RelVsn} = select_release(Args, RState2),
         State = grisp_tools:deploy(#{
             project_root => ProjectRoot,
             apps => Apps,
@@ -87,16 +89,16 @@ do(RState) ->
                     version => RelVsn
                 }},
                 shell => {fun rebar3_grisp_handler:shell/3, #{}},
-                release => {fun release_handler/2, RState}
+                release => {fun release_handler/2, RState2}
             }),
             scripts => #{
                 pre_script => PreScript,
                 post_script => PostScript
             }
         }),
-        #{release := RState2} = grisp_tools:handlers_finalize(State),
+        #{release := RState3} = grisp_tools:handlers_finalize(State),
         info("Deployment done"),
-        {ok, RState2}
+        {ok, RState3}
     catch
         error:{release_not_selected, [{Name, [Version|_]}|_]} ->
             abort(
@@ -108,7 +110,7 @@ do(RState) ->
                 [Name, Name, Version]
             );
         error:no_release_configured ->
-            App = rebar_app_info:name(hd(rebar_state:project_apps(RState))),
+            App = rebar_app_info:name(hd(rebar_state:project_apps(RState2))),
             abort(
                 "No release configured"
                 "~n"
@@ -151,14 +153,14 @@ do(RState) ->
         error:{release_unspecified, _} ->
             abort("Release name and/or version not specified");
         error:{template_error, File, {missing_key, Key}} ->
-            Root = rebar_dir:root_dir(RState),
+            Root = rebar_dir:root_dir(RState2),
             {ok, Relative} = rebar_file_utils:path_from_ancestor(File, Root),
             abort(
                 "Error rendering ~s:~nmissing template key: ~s",
                 [Relative, Key]
             );
         error:{template_error, File, {include_not_found, Include}} ->
-            Root = rebar_dir:root_dir(RState),
+            Root = rebar_dir:root_dir(RState2),
             {ok, Relative} = rebar_file_utils:path_from_ancestor(File, Root),
             abort(
                 "Error rendering ~s:~nmissing include file: ~s",
@@ -303,6 +305,17 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
     {#{dir => Dir}, rebar_state:command_args(RState4, OriginalArgs)}.
 
 % Utility functions
+
+compile_for_grisp(Config, State) ->
+    Providers = rebar_state:providers(State),
+    CompileProvider = providers:get_provider(compile, Providers),
+    Board = rebar3_grisp_util:platform(Config),
+    GrispEnvs = [{"GRISP", "yes"},
+                 {"GRISP_PLATFORM", atom_to_list(Board)}],
+    ConfigEnvs = rebar_state:get(State, shell_hooks_env, []),
+    State1 = rebar_state:set(State, shell_hooks_env, GrispEnvs ++ ConfigEnvs),
+    {ok, State2} = providers:do(CompileProvider, State1),
+    State2.
 
 select_release(Args, RState) ->
     Relx = rebar_state:get(RState, relx, []),
