@@ -161,6 +161,13 @@ Above command will try to download a crosscompiled OTP version from our CDN and 
 
 Run `rebar3 help grisp deploy` for information on all arguments.
 
+To generate a tarball with all the deployed files, add the option `-t/--tar`,
+all the files will be bundled in a a tarball under `_grisp/deploy`:
+
+```
+rebar3 grisp deploy --tar
+```
+
 ### Configuration
 
 `rebar.config`:
