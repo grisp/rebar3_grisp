@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New `-t/--tar` option to the deploy command to save a grisp release tarball in
+  the `_grisp/deploy` directory.
+
+### Changed
+
+- The deploy destination in rebar.config is now optional if the -t/--tar option
+  is specified to the deploy command. To disable a copy deployment when
+  configured in rebar.config, an empty destination can be specified on the
+  command line: `--destination=""`.
+
 ## [2.6.1] - 2024-06-21
 ### Changed
 - Adapation to the new format of the prompt provided by `grisp_tools_configure:settings/0`: [#81](https://github.com/grisp/rebar3_grisp/pull/81)

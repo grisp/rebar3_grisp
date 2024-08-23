@@ -31,6 +31,7 @@ init(State) ->
             {opts, [
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
                 {relvsn, $v, "relvsn", string, "Specify the version of the release"},
+                {tar, $t, "tar", {boolean, false}, "Create tarball with the release in _grisp/deploy"},
                 {destination, $d, "destination", string, "Path to put deployed release in"},
                 {force, $f, "force", {boolean, false}, "Replace existing files"},
                 {pre_script, undefined, "pre-script", string, "Shell script to run before deploying begins"},
@@ -53,12 +54,12 @@ do(RState) ->
     Config = rebar3_grisp_util:config(RState),
     OTPVersion = rebar3_grisp_util:otp_version(Config),
     Board = rebar3_grisp_util:platform(Config),
-    Destination = get_option(destination, [deploy, destination], RState),
-    PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
-    PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
+
+    CopyDest = get_option(destination, [deploy, destination], RState, undefined),
 
     {Args, _} = rebar_state:command_parsed_args(RState),
     Force = proplists:get_value(force, Args, false),
+    Tar = proplists:get_value(tar, Args, false),
 
     ProjectRoot = rebar_dir:root_dir(RState),
     Apps = rebar3_grisp_util:apps(RState),
@@ -67,19 +68,32 @@ do(RState) ->
 
     try
         {RelName, RelVsn} = select_release(Args, RState),
-        State = grisp_tools:deploy(#{
+        DistSpec = case {Tar, CopyDest}  of
+            {false, D} when D =:= undefined; D =:= "" ->
+                error(no_deploy_destination);
+            {true, D}  when D =:= undefined; D =:= "" -> [
+                bundle_dist_spec(RState, RelName, RelVsn, Force)
+            ];
+            {false, _} -> [
+                copy_dist_spec(RState, CopyDest, Force)
+            ];
+            {true, _} -> [
+                bundle_dist_spec(RState, RelName, RelVsn, Force),
+                copy_dist_spec(RState, CopyDest, Force)
+            ]
+        end,
+        DeploySpec = #{
             project_root => ProjectRoot,
             apps => Apps,
             otp_version_requirement => OTPVersion,
             platform => Board,
             custom_build => CustomBuild,
-            copy => #{
-                force => Force,
-                destination => Destination
-            },
+            distribute => DistSpec,
             release => #{
                 name => RelName,
-                version => RelVsn
+                version => RelVsn,
+                tar => Tar,
+                force => Force
             },
             handlers => grisp_tools:handlers_init(#{
                 event => {fun event_handler/2, #{
@@ -88,16 +102,24 @@ do(RState) ->
                 }},
                 shell => {fun rebar3_grisp_handler:shell/3, #{}},
                 release => {fun release_handler/2, RState}
-            }),
-            scripts => #{
-                pre_script => PreScript,
-                post_script => PostScript
-            }
-        }),
+            })
+        },
+        State = grisp_tools:deploy(DeploySpec),
         #{release := RState2} = grisp_tools:handlers_finalize(State),
         info("Deployment done"),
         {ok, RState2}
     catch
+        error:no_deploy_destination ->
+            abort(
+                "No deploy destination specified~n"
+                "The -t/--tar option should be specified, or the copy "
+                "destination should be defined either with the command line "
+                "option -d/--destination or by configuring it in "
+                "rebar.config:~n"
+                "~n"
+                "    {grisp, [{deploy, [{destination, \"/tmp/grisp\"}]}]}.~n",
+                []
+            );
         error:{release_not_selected, [{Name, [Version|_]}|_]} ->
             abort(
                 "Multiple releases defined!~n"
@@ -199,6 +221,33 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 
+copy_dist_spec(RState, CopyDest, Force) ->
+    PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
+    PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
+    {copy, #{
+        type => copy,
+        force => Force,
+        destination => CopyDest,
+        scripts => #{
+            pre_script => PreScript,
+            post_script => PostScript
+        }
+    }}.
+
+bundle_dist_spec(RState, RelName, RelVsn, Force) ->
+    Config = rebar3_grisp_util:config(RState),
+    Board = rebar3_grisp_util:platform(Config),
+    BundleDir = rebar3_grisp_util:deploy_dir(RState),
+    BundleName = iolist_to_binary(io_lib:format("~s.~s.~s.tar.gz",
+                                                [Board, RelName, RelVsn])),
+    BundleFile = filename:join(BundleDir, BundleName),
+    {bundle, #{
+        type => archive,
+        force => Force,
+        compressed => true,
+        destination => BundleFile
+    }}.
+
 % grisp_tools Events
 
 event_handler(Event, State) ->
@@ -233,25 +282,46 @@ event([deploy, package, extract, '_skip']) ->
     io:format("    (already extracted)~n");
 event([deploy, package, extract, {error, Reason}]) ->
     abort("Extraction failed: ~p", [Reason]);
-event([deploy, copy, Name, {run, _Script}]) ->
-    console("* Running ~p", [Name]);
-event([deploy, copy, _Name, {result, Output}]) ->
+event([deploy, distribute, Name, ScriptName, {run, _Script}]) ->
+    console("* Running ~s ~p", [Name, ScriptName]);
+event([deploy, distribute, _Name, _ScriptName, {result, Output}]) ->
     case trim(Output) of
         ""      -> ok;
         Trimmed -> console(Trimmed)
     end;
-event([deploy, copy, release, {error, target_dir_missing, Target}]) ->
-    abort("Target directory missing: ~s", [Target]);
-event([deploy, copy, release, {copy, _Source, _Target}]) ->
+event([deploy, distribute, bundle, release, {archive, _Source, _Target}]) ->
+    console("* Bundling release...");
+event([deploy, distribute, copy, release, {copy, _Source, _Target}]) ->
     console("* Copying release...");
-event([deploy, copy, files, {init, _Dest}]) ->
+event([deploy, distribute, copy, files, {init, _Dest}]) ->
     console("* Copying files...");
-event([deploy, copy, files, {copy, #{app := App, target := File}}]) ->
+event([deploy, distribute, bundle, files, {init, _Dest}]) ->
+    console("* Bundling files...");
+event([deploy, distribute, _Name, files, {_, #{app := App, target := File}}]) ->
     io:format("    [~p] ~s~n", [App, File]);
-event([deploy, copy, files, {error, {exists, File}}]) ->
+event([deploy, distribute, bundle, archive, {closed, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
+    console("* GRiSP deploy bundle archived in ~s", [RelPath]);
+event([deploy, distribute, _Name, {error, dir_missing, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
+    abort("Missing directory: ~s", [RelPath]);
+event([deploy, distribute, _Name, {error, dir_access, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
+    abort("Directory not accessible: ~s", [RelPath]);
+event([deploy, distribute, _Name, {error, not_a_directory, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
+    abort("Not a proper directory: ~s", [RelPath]);
+event([deploy, distribute, _Name, {error, file_access, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
+    abort("File not accessible: ~s", [RelPath]);
+event([deploy, distribute, _Name, {error, not_a_file, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
+    abort("Not a proper file: ~s", [RelPath]);
+event([deploy, distribute, _Name, {error, file_exists, Path}]) ->
+    RelPath = grisp_tools_util:make_relative(Path),
     abort(
         "Destination ~s already exists (use --force to overwrite)",
-        [File]
+        [RelPath]
     );
 event(Event) ->
     debug("[rebar3_grisp] ~p", [Event]).
