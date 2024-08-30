@@ -168,6 +168,186 @@ all the files will be bundled in a a tarball under `_grisp/deploy`:
 rebar3 grisp deploy --tar
 ```
 
+
+### Generate GRiSP 2 Firmwares
+
+The `firmware` command generates binary files that can be written on GRiSP 2
+eMMC. There is three types of firmware that can be generated:
+
+ - **System Firmware**:
+   The system firmware is the content of a system partition on the eMMC.
+   When using A/B software update, the system firmware can be written either
+   on the first or the second system partition. By default, the command will
+   generate a system firmware under `_grisp/firmware` but it can be disabled with
+   the option `-b false` or `--system false`.
+ - **eMMC Image Firmware**:
+   The eMMC image firmware is a full image containing the bootloader, the
+   partition table and the system partitions. It is meant to be written on the
+   GRiSP 2 board to reset it completely with the new software. If the image is
+   truncated (it is by default), the image only contains the first system
+   partition. It means that when writing the firmware to the eMMC, the second
+   system partition will be untouched. To generate an eMMC image firmware under
+   `_grisp/firmware`, add the option `-i` or `--image`, to disable truncating
+   so the image contains both system partitions, uses the option `-t false` or
+   `--truncate false`.
+ - **Bootloader Firmware**:
+   The bootloader firmware contains only the bootloader and the partition table.
+   To generate it under `_grisp/firmware`, add the option `-b` or `--bootloader`.
+
+e.g.
+
+Generate a system firmware for the default release:
+
+    rebar3 grisp firmware
+
+Generate a system firmware for a specific release:
+
+    rebar3 grisp firmware --relname myapp --relvsn 1.2.3
+
+Generate all firmwares, forcing existing files to be overwritten and forcing the
+generation of the software bundle even if one already exists in `_grisp/deploy`:
+
+    rebar3 grisp firmware --bootloader --image --force --force-bundle
+
+
+#### Firmware Update
+
+Description of the variables in the commands that will follow:
+ - **`${RELNAME}`**: The relx release names used when generating the firmware.
+ - **`${RELVSN}`**: The relx release version used when generating the firmware.
+ - **`${USER}`**: The username of the account running the command.
+ - **`${GRISP_BOARD_SERIAL}`**: The serial number of the GRiSP 2 board.
+
+To write a system firmware to a GRiSP 2 board:
+
+ - Copy the firmware to the SD card:
+
+    **`macOS`** `$ cp _grisp/firmware/grisp2.${RELNAME}.${RELVSN}.sys.gz /Volumes/GRISP`
+
+    **`Linux`** `$ cp _grisp/firmware/grisp2.${RELNAME}.${RELVSN}.sys.gz /media/${USER}/GRISP`
+
+ - Unmount the SD card:
+
+    **`macOS`** `$ diskutil umount /Volumes/GRISP`
+
+    **`Linux`** `$ umount /media/${USER}/GRISP`
+
+ - Open a serial console to the GRiSP board:
+
+    **`macOS`** `$ screen /dev/tty.usbserial-0${GRISP_BOARD_SERIAL}1 115200`
+
+    **`Linux`** `$ screen /dev/ttyUSB1 115200`
+
+ - Insert the SD card in the GRiSP 2 board.
+ - Reset the board using the onboard reset button.
+ - Enter into barebox console mode by pressing any key before 3 seconds.
+ - Consult the current active system partition:
+
+    **`Barebox`** `$ echo $state.bootstate.active_system`
+
+ - Write the firmware. If the current active system is `0`, use device
+   `/dev/mmc1.0`, if it is `1` use device `/dev/mmc1.1`:
+
+    **`Barebox`** `$ uncompress /mnt/mmc/grisp2.${RELNAME}.${RELVSN}.sys.gz /dev/mmc1.0`
+
+ - Remove the SD card.
+ - Reset the GRiSP board again.
+
+To reset a GRiSP 2 board eMMC, either with a truncated or full image firmware:
+
+ - Copy the firmware to the SD card:
+
+    **`macOS`** `$ cp _grisp/firmware/grisp2.${RELNAME}.${RELVSN}.emmc.gz /Volumes/GRISP`
+
+    **`Linux`** `$ cp _grisp/firmware/grisp2.${RELNAME}.${RELVSN}.emmc.gz /media/${USER}/GRISP`
+
+ - Unmount the SD card:
+
+    **`macOS`** `$ diskutil umount /Volumes/GRISP`
+
+    **`Linux`** `$ umount /media/${USER}/GRISP`
+
+ - Open a serial console to the GRiSP board:
+
+    **`macOS`** `$ screen /dev/tty.usbserial-0${GRISP_BOARD_SERIAL}1 115200`
+
+    **`Linux`** `$ screen /dev/ttyUSB1 115200`
+
+ - Insert the SD card in the GRiSP 2 board.
+ - Reset the board using the onboard reset button.
+ - Enter into barebox console mode by pressing any key before 3 seconds.
+ - Set the current active system partition to the first one:
+
+    **`Barebox`** `$ let state.bootstate.active_system=0`
+
+    **`Barebox`** `$ state -s`
+
+ - Write the firmware:
+
+    **`Barebox`** `$ uncompress /mnt/mmc/grisp2.${RELNAME}.${RELVSN}.emmc.gz /dev/mmc1`
+
+ - Remove the SD card.
+ - Reset the GRiSP board again.
+
+To reset only the bootloader of the board:
+
+ - Copy the firmware to the SD card:
+
+    **`macOS`** `$ cp _grisp/firmware/grisp2.${RELNAME}.${RELVSN}.boot.gz /Volumes/GRISP`
+
+    **`Linux`** `$ cp _grisp/firmware/grisp2.${RELNAME}.${RELVSN}.boot.gz /media/${USER}/GRISP`
+
+ - Unmount the SD card:
+
+    **`macOS`** `$ diskutil umount /Volumes/GRISP`
+
+    **`Linux`** `$ umount /media/${USER}/GRISP`
+
+ - Open a serial console to the GRiSP board:
+
+    **`macOS`** `$ screen /dev/tty.usbserial-0${GRISP_BOARD_SERIAL}1 115200`
+
+    **`Linux`** `$ screen /dev/ttyUSB1 115200`
+
+ - Insert the SD card in the GRiSP 2 board.
+ - Reset the board using the onboard reset button.
+ - Enter into barebox console mode by pressing any key before 3 seconds.
+ - Write the firmware:
+
+    **`Barebox`** `$ uncompress /mnt/mmc/grisp2.${RELNAME}.${RELVSN}.boot.gz /dev/mmc1`
+
+ - Remove the SD card.
+ - Reset the GRiSP board again.
+
+
+#### Cautions
+
+##### With truncated image firmwares
+
+When writing a truncated eMMC image firmware, only the first system partition is
+written. If the active system is the second one, the board will continue to boot
+the old software. You will need to manually change the active system partition
+in the bootloader console and restart the board.
+
+To consule the current active system partition in the bootloader console:
+
+    $ echo $state.bootstate.active_system
+
+To change the current active system partition to the first one:
+
+    $ let state.bootstate.active_system=0
+    $ state -s
+
+
+##### With writing system firmware on inactive system partition
+
+When writing a system firmware, be sure to do it on the active system
+partition or the board will continue to boot the old software.
+The device for the first system is `/dev/mmc1.0` and the one for the second
+system is `/dev/mmc1.1`. See [the caution about truncated images firmware](#with-truncated-image-firmwares)
+for details on how to consult and change the current active system partition.
+
+
 ### Configuration
 
 `rebar.config`:
