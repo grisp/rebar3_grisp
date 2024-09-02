@@ -32,6 +32,14 @@
 -export([merge_config/2]).
 -export([should_build/1]).
 -export([ensure_dir/1]).
+-export([select_release/3]).
+-export([bundle_file_name/3]).
+-export([bundle_file_path/3]).
+-export([rebar_command/4]).
+-export([firmware_dir/1]).
+-export([firmware_file_name/4]).
+-export([firmware_file_path/4]).
+-export([toolchain_root/1]).
 
 -import(rebar3_grisp_tools, [event/2]).
 
@@ -153,6 +161,110 @@ ensure_dir(File) ->
         Error -> abort("Could not create target directory: ~p", [Error])
     end.
 
+select_release(RebarState, RelName0, RelVsn)
+  when is_atom(RelName0) orelse is_list(RelName0),
+       RelVsn =:= undefined orelse is_list(RelVsn) ->
+    RelName = case is_list(RelName0) of
+        true -> list_to_atom(RelName0);
+        false -> RelName0
+    end,
+    Relx = rebar_state:get(RebarState, relx, []),
+    Releases = [element(2, R) || R <- Relx, element(1, R) == 'release'],
+    [erlang:error(no_release_configured) || length(Releases) == 0],
+    Indexed = index_releases(Releases),
+
+    case {{RelName, RelVsn}, lists:keyfind(RelName, 1, Indexed)} of
+        {{undefined, _}, _} when length(Indexed) > 1 ->
+            erlang:error({release_not_selected, Indexed});
+        {{undefined, undefined}, _} when length(Indexed) == 1 ->
+            [{Name, [Version|_]}] = Indexed,
+            {Name, Version};
+        {{RelName, undefined}, {RelName, [Version|_]}} ->
+            {RelName, Version};
+        {{RelName, RelVsn} = Release, {RelName, Versions}} ->
+            case lists:member(RelVsn, Versions) of
+                true -> {RelName, RelVsn};
+                false ->
+                    erlang:error({unknown_release_version, Release, Versions})
+            end;
+        {Release, false} ->
+            erlang:error({unknown_release_name, Release,
+                          lists:map(fun({N, _}) -> N end, Indexed)})
+    end.
+
+bundle_file_name(RebarState, RelName, RelVsn) ->
+    Config = config(RebarState),
+    Board = platform(Config),
+    iolist_to_binary(io_lib:format("~s.~s.~s.tar.gz",
+                                   [Board, RelName, RelVsn])).
+
+bundle_file_path(RebarState, RelName, RelVsn) ->
+    BundleDir = rebar3_grisp_util:deploy_dir(RebarState),
+    BundleName = bundle_file_name(RebarState, RelName, RelVsn),
+    filename:join(BundleDir, BundleName).
+
+firmware_dir(RebarState) ->
+        filename:join([root(RebarState), "firmware"]).
+
+firmware_file_name(RebarState, image, RelName, RelVsn) ->
+    Config = config(RebarState),
+    Board = platform(Config),
+    iolist_to_binary(io_lib:format("~s.~s.~s.emmc.gz",
+                                   [Board, RelName, RelVsn]));
+firmware_file_name(RebarState, system, RelName, RelVsn) ->
+    Config = config(RebarState),
+    Board = platform(Config),
+    iolist_to_binary(io_lib:format("~s.~s.~s.sys.gz",
+                                   [Board, RelName, RelVsn]));
+firmware_file_name(RebarState, boot, RelName, RelVsn) ->
+    Config = config(RebarState),
+    Board = platform(Config),
+    iolist_to_binary(io_lib:format("~s.~s.~s.boot.gz",
+                                   [Board, RelName, RelVsn])).
+
+firmware_file_path(RebarState, Type, RelName, RelVsn) ->
+    BundleDir = rebar3_grisp_util:firmware_dir(RebarState),
+    BundleName = firmware_file_name(RebarState, Type, RelName, RelVsn),
+    filename:join(BundleDir, BundleName).
+
+rebar_command(RebarState, Namespace, Command, Args) ->
+    % Backup current command state
+    OriginalNamespace = rebar_state:namespace(RebarState),
+    OriginalArgs = rebar_state:command_args(RebarState),
+    OriginalParsedArgs = rebar_state:command_parsed_args(RebarState),
+
+    % Args are parsed by rebar_core
+    RebarState2 = rebar_state:namespace(RebarState, Namespace),
+    RebarState3 = rebar_state:command_args(RebarState2, Args),
+
+    case rebar_core:process_command(RebarState3, Command) of
+        {error, _Reason} = Error -> Error;
+        {ok, RS} ->
+            % Restore current command state
+            RS2 = rebar_state:namespace(RS, OriginalNamespace),
+            RS3 = rebar_state:command_args(RS2, OriginalArgs),
+            RS4 = rebar_state:command_parsed_args(RS3, OriginalParsedArgs),
+            {ok, RS4}
+    end.
+
+toolchain_root(RebarState) ->
+    Config = rebar3_grisp_util:config(RebarState),
+    DockerImg = rebar3_grisp_util:get([build, toolchain, docker], Config, error),
+    TCDir = rebar3_grisp_util:get([build, toolchain, directory], Config, error),
+    case os:getenv("GRISP_TOOLCHAIN", TCDir) of
+        error -> case DockerImg of
+            error -> undefined;
+            DockerImage ->
+                case rebar3_grisp_util:sh("docker info",[return_on_error]) of
+                    {error, _} -> {error, docker_not_found};
+                    {ok, _} -> {docker, DockerImage}
+                end
+            end;
+        Directory ->
+            {directory, Directory}
+    end.
+
+
 %--- Internal ------------------------------------------------------------------
 
 deep_get([], Value, _Default) ->
@@ -180,3 +292,18 @@ merge_config_([{Key, Val}, {Key, _} | Rest], Acc) ->
     merge_config_(Rest, [{Key, Val} | Acc]);
 merge_config_([Item | Rest], Acc) ->
     merge_config_(Rest, [Item | Acc]).
+
+index_releases(Releases) ->
+    Index = lists:foldl(fun({Name, Version}, Acc) ->
+        Versions = proplists:get_value(Name, Acc, []),
+        lists:keystore(Name, 1, Acc, {Name, [Version|Versions]})
+        % maps:update_with(Name, fun(L) -> [Version|L] end, [Version], Acc)
+    end, [], Releases),
+    lists:map(fun({Name, Versions}) ->
+        {Name, lists:usort(fun(V1, V2) ->
+            rlx_util:parsed_vsn_lte(
+                rlx_util:parse_vsn(V2), % Highest version first
+                rlx_util:parse_vsn(V1)
+            )
+        end, Versions)}
+    end, Index).

@@ -17,6 +17,8 @@
     abort/2
 ]).
 
+-define(MAX_DDOT, 2).
+
 %--- Callbacks -----------------------------------------------------------------
 
 -spec init(rebar_state:t()) -> {ok, rebar_state:t()}.
@@ -60,6 +62,8 @@ do(RState) ->
     {Args, _} = rebar_state:command_parsed_args(RState),
     Force = proplists:get_value(force, Args, false),
     Tar = proplists:get_value(tar, Args, false),
+    RelNameArg = proplists:get_value(relname, Args),
+    RelVsnArg = proplists:get_value(relvsn, Args),
 
     ProjectRoot = rebar_dir:root_dir(RState),
     Apps = rebar3_grisp_util:apps(RState),
@@ -67,7 +71,8 @@ do(RState) ->
     CustomBuild = rebar3_grisp_util:should_build(Config),
 
     try
-        {RelName, RelVsn} = select_release(Args, RState),
+        {RelName, RelVsn}
+            = rebar3_grisp_util:select_release(RState, RelNameArg, RelVsnArg),
         DistSpec = case {Tar, CopyDest}  of
             {false, D} when D =:= undefined; D =:= "" ->
                 error(no_deploy_destination);
@@ -125,8 +130,8 @@ do(RState) ->
                 "Multiple releases defined!~n"
                 "You must specify a name and optionally a version. Examples:~n"
                 "~n"
-                "    rebar3 grisp release --relname ~p~n"
-                "    rebar3 grisp release --relname ~p --relvsn ~s~n",
+                "    rebar3 grisp deploy --relname ~p~n"
+                "    rebar3 grisp deploy --relname ~p --relvsn ~s~n",
                 [Name, Name, Version]
             );
         error:no_release_configured ->
@@ -235,12 +240,7 @@ copy_dist_spec(RState, CopyDest, Force) ->
     }}.
 
 bundle_dist_spec(RState, RelName, RelVsn, Force) ->
-    Config = rebar3_grisp_util:config(RState),
-    Board = rebar3_grisp_util:platform(Config),
-    BundleDir = rebar3_grisp_util:deploy_dir(RState),
-    BundleName = iolist_to_binary(io_lib:format("~s.~s.~s.tar.gz",
-                                                [Board, RelName, RelVsn])),
-    BundleFile = filename:join(BundleDir, BundleName),
+    BundleFile = rebar3_grisp_util:bundle_file_path(RState, RelName, RelVsn),
     {bundle, #{
         type => archive,
         force => Force,
@@ -300,25 +300,25 @@ event([deploy, distribute, bundle, files, {init, _Dest}]) ->
 event([deploy, distribute, _Name, files, {_, #{app := App, target := File}}]) ->
     io:format("    [~p] ~s~n", [App, File]);
 event([deploy, distribute, bundle, archive, {closed, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     console("* GRiSP deploy bundle archived in ~s", [RelPath]);
 event([deploy, distribute, _Name, {error, dir_missing, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     abort("Missing directory: ~s", [RelPath]);
 event([deploy, distribute, _Name, {error, dir_access, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     abort("Directory not accessible: ~s", [RelPath]);
 event([deploy, distribute, _Name, {error, not_a_directory, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     abort("Not a proper directory: ~s", [RelPath]);
 event([deploy, distribute, _Name, {error, file_access, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     abort("File not accessible: ~s", [RelPath]);
 event([deploy, distribute, _Name, {error, not_a_file, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     abort("Not a proper file: ~s", [RelPath]);
 event([deploy, distribute, _Name, {error, file_exists, Path}]) ->
-    RelPath = grisp_tools_util:make_relative(Path),
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     abort(
         "Destination ~s already exists (use --force to overwrite)",
         [RelPath]
@@ -374,59 +374,12 @@ release_handler(#{name := Name, version := Version, erts := Root}, RState) ->
 
 % Utility functions
 
-select_release(Args, RState) ->
-    Relx = rebar_state:get(RState, relx, []),
-
-    Releases = [element(2, R) || R <- Relx, element(1, R) == 'release'],
-    [error(no_release_configured) || length(Releases) == 0],
-
-    RelName = list_to_atom(proplists:get_value(relname, Args, "undefined")),
-    RelVsn = proplists:get_value(relvsn, Args),
-    Indexed = index_releases(Releases),
-
-    case {{RelName, RelVsn}, lists:keyfind(RelName, 1, Indexed)} of
-        {{undefined, _}, _} when length(Indexed) > 1 ->
-            error({release_not_selected, Indexed});
-        {{undefined, undefined}, _} when length(Indexed) == 1 ->
-            [{Name, [Version|_]}] = Indexed,
-            {Name, Version};
-        {{RelName, undefined}, {RelName, [Version|_]}} ->
-            {RelName, Version};
-        {{RelName, RelVsn} = Release, {RelName, Versions}} ->
-            case lists:member(RelVsn, Versions) of
-                true -> {RelName, RelVsn};
-                false -> error({unknown_release_version, Release, Versions})
-            end;
-        {Release, false} ->
-            error({unknown_release_name, Release, lists:map(fun({N, _}) -> N end, Indexed)})
-    end.
-
-index_releases(Releases) ->
-    Index = lists:foldl(fun({Name, Version}, Acc) ->
-        Versions = proplists:get_value(Name, Acc, []),
-        lists:keystore(Name, 1, Acc, {Name, [Version|Versions]})
-        % maps:update_with(Name, fun(L) -> [Version|L] end, [Version], Acc)
-    end, [], Releases),
-    lists:map(fun({Name, Versions}) ->
-        {Name, lists:usort(fun(V1, V2) ->
-            rlx_util:parsed_vsn_lte(
-                rlx_util:parse_vsn(V2), % Highest version first
-                rlx_util:parse_vsn(V1)
-            )
-        end, Versions)}
-    end, Index).
-
 rel_args(Name, Version, Args) ->
     RelArgs = case lists:splitwith(fun("--") -> false; (_) -> true end, Args) of
         {_, ["--"|Rest]} -> Rest;
         {_, _}           -> []
     end,
     ["-n", Name, "-v", Version|RelArgs] -- ["-h", "--help", "--version"].
-
-get_option(Arg, ConfigKey, State) ->
-    get_arg_option(Arg, State, fun(Config) ->
-        rebar3_grisp_util:get(ConfigKey, Config)
-    end).
 
 get_option(Arg, ConfigKey, State, Default) ->
     get_arg_option(Arg, State, fun(Config) ->
