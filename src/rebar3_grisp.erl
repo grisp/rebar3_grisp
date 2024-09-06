@@ -19,5 +19,6 @@ init(State) ->
         rebar3_grisp_package,
         rebar3_grisp_version,
         rebar3_grisp_report,
-        rebar3_grisp_firmware
+        rebar3_grisp_firmware,
+        rebar3_grisp_pack
     ]).

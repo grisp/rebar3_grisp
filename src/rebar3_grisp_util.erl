@@ -39,6 +39,9 @@
 -export([firmware_dir/1]).
 -export([firmware_file_name/4]).
 -export([firmware_file_path/4]).
+-export([update_dir/1]).
+-export([update_file_name/3]).
+-export([update_file_path/3]).
 -export([toolchain_root/1]).
 
 -import(rebar3_grisp_tools, [event/2]).
@@ -195,8 +198,9 @@ select_release(RebarState, RelName0, RelVsn)
 bundle_file_name(RebarState, RelName, RelVsn) ->
     Config = config(RebarState),
     Board = platform(Config),
-    iolist_to_binary(io_lib:format("~s.~s.~s.tar.gz",
-                                   [Board, RelName, RelVsn])).
+    Profile = profile_postfix(RebarState),
+    iolist_to_binary(io_lib:format("~s.~s.~s~s.tar.gz",
+                                   [Board, RelName, RelVsn, Profile])).
 
 bundle_file_path(RebarState, RelName, RelVsn) ->
     BundleDir = rebar3_grisp_util:deploy_dir(RebarState),
@@ -204,28 +208,46 @@ bundle_file_path(RebarState, RelName, RelVsn) ->
     filename:join(BundleDir, BundleName).
 
 firmware_dir(RebarState) ->
-        filename:join([root(RebarState), "firmware"]).
+    filename:join([root(RebarState), "firmware"]).
 
 firmware_file_name(RebarState, image, RelName, RelVsn) ->
     Config = config(RebarState),
     Board = platform(Config),
-    iolist_to_binary(io_lib:format("~s.~s.~s.emmc.gz",
-                                   [Board, RelName, RelVsn]));
+    Profile = profile_postfix(RebarState),
+    iolist_to_binary(io_lib:format("~s.~s.~s~s.emmc.gz",
+                                   [Board, RelName, RelVsn, Profile]));
 firmware_file_name(RebarState, system, RelName, RelVsn) ->
     Config = config(RebarState),
     Board = platform(Config),
-    iolist_to_binary(io_lib:format("~s.~s.~s.sys.gz",
-                                   [Board, RelName, RelVsn]));
+    Profile = profile_postfix(RebarState),
+    iolist_to_binary(io_lib:format("~s.~s.~s~s.sys.gz",
+                                   [Board, RelName, RelVsn, Profile]));
 firmware_file_name(RebarState, boot, RelName, RelVsn) ->
     Config = config(RebarState),
     Board = platform(Config),
-    iolist_to_binary(io_lib:format("~s.~s.~s.boot.gz",
-                                   [Board, RelName, RelVsn])).
+    Profile = profile_postfix(RebarState),
+    iolist_to_binary(io_lib:format("~s.~s.~s~s.boot.gz",
+                                   [Board, RelName, RelVsn, Profile])).
 
 firmware_file_path(RebarState, Type, RelName, RelVsn) ->
     BundleDir = rebar3_grisp_util:firmware_dir(RebarState),
     BundleName = firmware_file_name(RebarState, Type, RelName, RelVsn),
     filename:join(BundleDir, BundleName).
+
+update_dir(RebarState) ->
+    filename:join([root(RebarState), "update"]).
+
+update_file_name(RebarState, RelName, RelVsn) ->
+    Config = config(RebarState),
+    Board = platform(Config),
+    Profile = profile_postfix(RebarState),
+    iolist_to_binary(io_lib:format("~s.~s.~s~s.tar",
+                                   [Board, RelName, RelVsn, Profile])).
+
+update_file_path(RebarState, RelName, RelVsn) ->
+    UpdateDir = rebar3_grisp_util:update_dir(RebarState),
+    UpdateName = update_file_name(RebarState, RelName, RelVsn),
+    filename:join(UpdateDir, UpdateName).
 
 rebar_command(RebarState, Namespace, Command, Args) ->
     % Backup current command state
@@ -307,3 +329,10 @@ index_releases(Releases) ->
             )
         end, Versions)}
     end, Index).
+
+profile_postfix(RebarState) ->
+    AllProfiles = rebar_state:current_profiles(RebarState),
+    case [atom_to_binary(P) || P <- AllProfiles, P =/= default, P =/= grisp] of
+        [] -> <<"">>;
+        Profiles -> iolist_to_binary([".", lists:join($+, Profiles)])
+    end.
