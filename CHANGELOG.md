@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2024-09-06
+
 ### Added
 
 - New `-t/--tar` option to the deploy command to save a grisp release tarball in
@@ -336,7 +338,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.6.1...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.7.0...HEAD
+[2.7.0]: https://github.com/grisp/rebar3_grisp/compare/2.6.1...2.7.0
 [2.6.1]: https://github.com/grisp/rebar3_grisp/compare/2.6.0...2.6.1
 [2.6.0]: https://github.com/grisp/rebar3_grisp/compare/2.5.0...2.6.0
 [2.5.0]: https://github.com/grisp/rebar3_grisp/compare/2.4.0...2.5.0
