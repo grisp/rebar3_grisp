@@ -169,7 +169,28 @@ rebar3 grisp deploy --tar
 ```
 
 
-### Generate GRiSP 2 Firmwares
+### Configuration
+
+`rebar.config`:
+
+```erlang
+{grisp, [
+    {otp, [{version, "22.0"}]},
+    {deploy, [
+        % Path to put deployed release in
+        {destination, "/path/to/destination"},
+
+        % Shell script to run before deploying begins
+        {pre_script, "rm -rf /path/to/destination/*"},
+
+        % Shell script to run after deploying has finished
+        {post_script, "umount /path/to/destination"}
+    ]}
+]}.
+```
+
+
+## Generate GRiSP 2 Firmwares
 
 The `firmware` command generates binary files that can be written on GRiSP 2
 eMMC. There is three types of firmware that can be generated:
@@ -210,7 +231,7 @@ generation of the software bundle even if one already exists in `_grisp/deploy`:
     rebar3 grisp firmware --bootloader --image --force --force-bundle
 
 
-#### Firmware Update
+### Firmware Update
 
 Description of the variables in the commands that will follow:
  - **`${RELNAME}`**: The relx release names used when generating the firmware.
@@ -320,9 +341,9 @@ To reset only the bootloader of the board:
  - Reset the GRiSP board again.
 
 
-#### Cautions
+### Cautions
 
-##### With truncated image firmwares
+#### With truncated image firmwares
 
 When writing a truncated eMMC image firmware, only the first system partition is
 written. If the active system is the second one, the board will continue to boot
@@ -339,7 +360,7 @@ To change the current active system partition to the first one:
     $ state -s
 
 
-##### With writing system firmware on inactive system partition
+#### With writing system firmware on inactive system partition
 
 When writing a system firmware, be sure to do it on the active system
 partition or the board will continue to boot the old software.
@@ -348,25 +369,89 @@ system is `/dev/mmc1.1`. See [the caution about truncated images firmware](#with
 for details on how to consult and change the current active system partition.
 
 
-### Configuration
+## Build Software Update Package
 
+To create a GRiSP software update package, use the 'pack' command:
+
+    $ rebar3 grisp pack
+
+It creates a software update package under `_grisp/update`.
+
+To include the bootloader in the generate update package, add the option
+`-b/--with-bootloader`:
+
+    $ rebar3 grisp pack -b
+
+Note that a toolchain is required for building the bootloader firmware, see the
+`deploy` command for more information on how to configure the toolchain.
+
+To force the recreation of the bundle and firmware(s) use the option
+`-F/--force-firmware`:
+
+    $ rebar3 grisp pack -F
+
+To generate a signed package, use the `-k/--key` option:
+
+    $ rebar3 grisp pack --key private_key.pem
+
+
+### Updating a GRiSP Board
+
+To be able to update a GRiSP board using a software update package, the software
+running on the board must have the `grisp_updater_grisp2` dependency in
 `rebar.config`:
 
-```erlang
-{grisp, [
-    {otp, [{version, "22.0"}]},
-    {deploy, [
-        % Path to put deployed release in
-        {destination, "/path/to/destination"},
+    {deps, [grisp_updater_grisp2]}.
 
-        % Shell script to run before deploying begins
-        {pre_script, "rm -rf /path/to/destination/*"},
+`grisp_updater` needs to be configured in `sys.config` (or equivalent):
 
-        % Shell script to run after deploying has finished
-        {post_script, "umount /path/to/destination"}
-    ]}
-]}.
-```
+    {grisp_updater, [
+        {signature_check, true},
+        {signature_certificates, {priv, my_app, "certificates/updates"}},
+        {system, {grisp_updater_grisp2, #{}}},
+        {sources, [
+            {grisp_updater_tarball, #{}},
+            {grisp_updater_http, #{
+                backend => {grisp_updater_grisp2, #{}}
+            }}
+        ]}
+    ]},
+
+If `signature_check` is set to `true` the software package must be signed using
+the `-k/--key` option, and the public key must be available in the directory
+configured by `signature_certificates`.
+
+When these conditions are met, you can follow these step to perform a A/B
+software update of a GRiSP board:
+
+ - Unpack the software update package in some local directory:
+
+    **`any`** `$ mkdir -p releases/${RELNAME}/${RELVSN}`
+    **`any`** `$ tar -C releases/${RELNAME}/${RELVSN} -xvf _grisp/update/grisp2.${REL_NAME}".${RELVSN}.${PROFILE}.tar -xvf`
+
+ - Start a local HTTP server to serve the package:
+
+    **`any`** `$ http-server ./releases -p 8000`
+
+ - Open a serial console to the GRiSP board:
+
+    **`macOS`** `$ screen /dev/tty.usbserial-0${GRISP_BOARD_SERIAL}1 115200`
+
+    **`Linux`** `$ screen /dev/ttyUSB1 115200`
+
+- On the GRiSP2 console, start the update process:
+
+    **`GRiSP`** `$ grisp_updater:update(<<"http://${HOST_IP}:8000/${RELNAME}/${RELVSN}">>).`
+
+- Reset the GRiSP2 board using the onboard reset button.
+
+- Validate the new software version on the GRiSP2 console:
+
+    **`GRiSP`** `$ grisp_updater:validate().`
+
+Note that the update process will only show progress information if the log
+level is at least `INFO`.
+
 
 ## Listing Packages
 

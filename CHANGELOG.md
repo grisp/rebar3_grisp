@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `-t/--tar` option to the deploy command to save a grisp release tarball in
   the `_grisp/deploy` directory.
 - New firmware command to generate GRiSP 2 binary firmwares: [#83](https://github.com/grisp/rebar3_grisp/pull/83)
+- New pack command to generate GRiSP 2 software update package: [#85](https://github.com/grisp/rebar3_grisp/pull/85)
 
 ### Changed
 

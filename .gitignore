@@ -16,3 +16,4 @@ logs
 _build
 .idea
 rebar3.crashdump
+.tool-versions
