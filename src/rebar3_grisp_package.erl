@@ -152,7 +152,11 @@ format(Files) ->
     lists:map(fun(#{last_modified := Modified, size := Size} = F) ->
         F#{
             last_modified => format_datetime(Modified),
-            size => format_size(Size)
+            size => format_size(Size),
+            latest => case maps:get(latest, F, false) of
+                        true -> "true";
+                        false -> ""
+                      end
         }
     end, Files).
 
@@ -162,10 +166,7 @@ table(Items, Columns) ->
     All = lists:usort(fun(A, B) ->
         compare(values(A, Columns), values(B, Columns))
     end, Items),
-    Table = grid:format(All, #{
-        header => #{format => fun format_header/1},
-        columns => Columns}
-    ),
+    Table = grid:format(All, #{header => titlecase, columns => Columns}),
     io:format(Table).
 
 format_size(Size) ->
@@ -182,14 +183,6 @@ format_size(Size, [_|Units]) ->
 
 format_datetime(DateTime) ->
     iolist_to_binary(calendar:system_time_to_rfc3339(DateTime)).
-
-format_header(String) ->
-    Words = string:split(String, <<"_">>, all),
-    Formatted = lists:join($ , [titlecase(W) || W <- Words]),
-    grid:cell(cf:format("~!^~s", [Formatted]), string:length(String)).
-
-titlecase(<<"os">>) -> <<"OS">>;
-titlecase(String) -> string:titlecase(String).
 
 abort_columns(Type, Msg) -> abort_columns(Type, Msg, []).
 abort_columns(Type, Msg, Args) ->
