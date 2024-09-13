@@ -159,13 +159,11 @@ format(Files) ->
 table([], _Columns) ->
     warn("No packages found");
 table(Items, Columns) ->
+    Items2 = lists:map(fun format_latest/1, Items),
     All = lists:usort(fun(A, B) ->
         compare(values(A, Columns), values(B, Columns))
-    end, Items),
-    Table = grid:format(All, #{
-        header => #{format => fun format_header/1},
-        columns => Columns}
-    ),
+    end, Items2),
+    Table = grid:format(All, #{header => titlecase, columns => Columns}),
     io:format(Table).
 
 format_size(Size) ->
@@ -183,13 +181,8 @@ format_size(Size, [_|Units]) ->
 format_datetime(DateTime) ->
     iolist_to_binary(calendar:system_time_to_rfc3339(DateTime)).
 
-format_header(String) ->
-    Words = string:split(String, <<"_">>, all),
-    Formatted = lists:join($ , [titlecase(W) || W <- Words]),
-    grid:cell(cf:format("~!^~s", [Formatted]), string:length(String)).
-
-titlecase(<<"os">>) -> <<"OS">>;
-titlecase(String) -> string:titlecase(String).
+format_latest(#{latest := false} = Item) -> Item#{latest => ""};
+format_latest(#{latest := true} = Item) -> Item#{latest => "true"}.
 
 abort_columns(Type, Msg) -> abort_columns(Type, Msg, []).
 abort_columns(Type, Msg, Args) ->
