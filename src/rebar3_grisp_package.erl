@@ -152,17 +152,20 @@ format(Files) ->
     lists:map(fun(#{last_modified := Modified, size := Size} = F) ->
         F#{
             last_modified => format_datetime(Modified),
-            size => format_size(Size)
+            size => format_size(Size),
+            latest => case maps:get(latest, F, false) of
+                        true -> "true";
+                        false -> ""
+                      end
         }
     end, Files).
 
 table([], _Columns) ->
     warn("No packages found");
 table(Items, Columns) ->
-    Items2 = lists:map(fun format_latest/1, Items),
     All = lists:usort(fun(A, B) ->
         compare(values(A, Columns), values(B, Columns))
-    end, Items2),
+    end, Items),
     Table = grid:format(All, #{header => titlecase, columns => Columns}),
     io:format(Table).
 
@@ -180,9 +183,6 @@ format_size(Size, [_|Units]) ->
 
 format_datetime(DateTime) ->
     iolist_to_binary(calendar:system_time_to_rfc3339(DateTime)).
-
-format_latest(#{latest := false} = Item) -> Item#{latest => ""};
-format_latest(#{latest := true} = Item) -> Item#{latest => "true"}.
 
 abort_columns(Type, Msg) -> abort_columns(Type, Msg, []).
 abort_columns(Type, Msg, Args) ->
