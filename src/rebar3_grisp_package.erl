@@ -77,13 +77,6 @@ task_help("list", _Args, RState) ->
         "  -x, --hash      List package hashes [default: false]~n"
     ),
     RState;
-task_help("download", _Args, RState) ->
-    console(
-        "Download packages~n"
-        "~n"
-        "Foo"
-    ),
-    RState;
 task_help(undefined, _Args, RState) ->
     Args = [atom_to_list(A) || A <- [?NAMESPACE, ?TASK]],
     {ok, RState2} = rebar_prv_help:do(rebar_state:command_args(RState, Args)),
@@ -115,11 +108,8 @@ task_run("list", {Args, _Rest}, RState) ->
             abort("Listing of ~p ~p packages not supported", [Source, Type])
     end,
     RState;
-task_run("download", {Args, _Rest}, RState) ->
-    console("~p", [Args]),
-    RState;
-task_run(Task, _Args, _State) ->
-    abort("~p: unknown task: ~s", [?TASK, Task]).
+task_run(Task, _Args, RState) ->
+    task_help(undefined, _Args, RState).
 
 parse_columns(otp, undefined) ->
     [version];
