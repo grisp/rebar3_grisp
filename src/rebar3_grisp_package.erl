@@ -108,7 +108,7 @@ task_run("list", {Args, _Rest}, RState) ->
             abort("Listing of ~p ~p packages not supported", [Source, Type])
     end,
     RState;
-task_run(Task, _Args, RState) ->
+task_run(_Task, _Args, RState) ->
     task_help(undefined, _Args, RState).
 
 parse_columns(otp, undefined) ->
