@@ -35,7 +35,6 @@
 -export([select_release/3]).
 -export([bundle_file_name/3]).
 -export([bundle_file_path/3]).
--export([rebar_command/4]).
 -export([firmware_dir/1]).
 -export([firmware_file_name/4]).
 -export([firmware_file_path/4]).
@@ -248,26 +247,6 @@ update_file_path(RebarState, RelName, RelVsn) ->
     UpdateDir = rebar3_grisp_util:update_dir(RebarState),
     UpdateName = update_file_name(RebarState, RelName, RelVsn),
     filename:join(UpdateDir, UpdateName).
-
-rebar_command(RebarState, Namespace, Command, Args) ->
-    % Backup current command state
-    OriginalNamespace = rebar_state:namespace(RebarState),
-    OriginalArgs = rebar_state:command_args(RebarState),
-    OriginalParsedArgs = rebar_state:command_parsed_args(RebarState),
-
-    % Args are parsed by rebar_core
-    RebarState2 = rebar_state:namespace(RebarState, Namespace),
-    RebarState3 = rebar_state:command_args(RebarState2, Args),
-
-    case rebar_core:process_command(RebarState3, Command) of
-        {error, _Reason} = Error -> Error;
-        {ok, RS} ->
-            % Restore current command state
-            RS2 = rebar_state:namespace(RS, OriginalNamespace),
-            RS3 = rebar_state:command_args(RS2, OriginalArgs),
-            RS4 = rebar_state:command_parsed_args(RS3, OriginalParsedArgs),
-            {ok, RS4}
-    end.
 
 toolchain_root(RebarState) ->
     Config = rebar3_grisp_util:config(RebarState),

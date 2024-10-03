@@ -183,7 +183,10 @@ deploy_bundle(RState, Force, RelName, RelVsn, ExtraRelArgs) ->
         [_|_] -> ["--" | ExtraRelArgs];
         _ -> []
     end,
-    rebar3_grisp_util:rebar_command(RState, grisp, deploy, Args).
+    case rebar3:run(["grisp", "deploy" | Args]) of
+        {error, _Reason} = Error -> Error;
+        {ok, _} -> {ok, RState}
+    end.
 
 grisp_tools_firmware(RState, RelName, RelVsn, Args) ->
     Config = rebar3_grisp_util:config(RState),

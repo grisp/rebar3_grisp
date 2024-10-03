@@ -217,7 +217,10 @@ build_firmwares(RState, WithBoot, Force, RelName, RelVsn, ExtraRelArgs) ->
         [_|_] -> ["--" | ExtraRelArgs];
         _ -> []
     end,
-    rebar3_grisp_util:rebar_command(RState, grisp, firmware, Args).
+    case rebar3:run(["grisp", "firmware" | Args]) of
+        {error, _Reason} = Error -> Error;
+        {ok, _} -> {ok, RState}
+    end.
 
 grisp_tools_pack(RState, RelName, RelVsn, Args) ->
     SysFile = proplists:get_value(system, Args),
