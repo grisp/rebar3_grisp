@@ -34,7 +34,7 @@ init(State) ->
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
                 {relvsn, $v, "relvsn", string, "Specify the version of the release"},
                 {bundle, undefined, "bundle", string, "The release bundle to use in the firmware"},
-                {force_bundle, $F, "force-bundle", {boolean, false}, "Force bundle deploy even if it already exists"},
+                {refresh, $r, "refresh", {boolean, false}, "Force bundle deploy even if it already exists"},
                 {force, $f, "force", {boolean, false}, "Replace existing files"},
                 {compress, $z, "compress", {boolean, true}, "Compress the output files"},
                 {system, $s, "system", {boolean, true}, "Generate a system firmware under _grisp/firmware"},
@@ -71,8 +71,8 @@ do(RState) ->
             = rebar3_grisp_util:select_release(RState, RelNameArg, RelVsnArg),
         case proplists:get_value(bundle, Args, undefined) of
             undefined ->
-                Force = proplists:get_value(force_bundle, Args, false),
-                case get_bundle(RState, Force, RelName, RelVsn, ExtraArgs) of
+                Refresh = proplists:get_value(refresh, Args, false),
+                case get_bundle(RState, Refresh, RelName, RelVsn, ExtraArgs) of
                     {error, _Reason} = Error -> Error;
                     {ok, BundleFile, RState2} ->
                         grisp_tools_firmware(RState2, RelName, RelVsn,
@@ -154,29 +154,29 @@ toolchain_root(RebarState) ->
         {error, docker_not_found} -> abort("Docker is not available")
     end.
 
-get_bundle(RState, Force, RelName, RelVsn, ExtraRelArgs) ->
+get_bundle(RState, Refresh, RelName, RelVsn, ExtraRelArgs) ->
     BundleFile = rebar3_grisp_util:bundle_file_path(RState, RelName, RelVsn),
     case filelib:is_file(BundleFile) of
-        true when Force =:= false ->
+        true when Refresh =:= false ->
             RelPath = grisp_tools_util:maybe_relative(BundleFile, ?MAX_DDOT),
             console("* Using existing bundle: ~s", [RelPath]),
             {ok, BundleFile, RState};
         _ ->
             console("* Deploying bundle...", []),
-            case deploy_bundle(RState, Force, RelName,
+            case deploy_bundle(RState, Refresh, RelName,
                                RelVsn, ExtraRelArgs) of
                 {ok, RState2} -> {ok, BundleFile, RState2};
                 {error, _Reason} = Error -> Error
             end
     end.
 
-deploy_bundle(RState, Force, RelName, RelVsn, ExtraRelArgs) ->
+deploy_bundle(RState, Refresh, RelName, RelVsn, ExtraRelArgs) ->
     Args = [
         "--tar",
         "--relname", atom_to_list(RelName),
         "--relvsn", RelVsn,
         "--destination", ""
-    ] ++ case Force =:= true of
+    ] ++ case Refresh =:= true of
         true -> ["--force"];
         false -> []
     end ++ case ExtraRelArgs of

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the grisp firmware command argument --force-bundle/-F and the grisp
+  pack command argument --force-bundle/-F to --refresh/-r. [#91](https://github.com/grisp/rebar3_grisp/pull/92)
+
 ### Removed
 
 - The utility function rebar3_grisp_util:rebar_command/4 has been removed as it
