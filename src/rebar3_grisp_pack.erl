@@ -38,7 +38,7 @@ init(State) ->
                 {block_size, undefined, "block-size", integer, "The size of the blocks in bytes, before compression"},
                 {key, $k, "key", string, "Private key PEM file to use to sign the update package"},
                 {with_bootloader, $b, "with-bootloader", {boolean, false}, "Include a bootloader firmware in the software update package"},
-                {force_firmware, $F, "force-firmware", {boolean, false}, "Force firmware building even if it already exists"},
+                {refresh, $r, "refresh", {boolean, false}, "Force firmware building even if it already exists"},
                 {force, $f, "force", {boolean, false}, "Replace existing files"},
                 {quiet, $q, "quiet", {boolean, false}, "Do not show the instructions on how to update a GRiSP2 board"} 
             ]},
@@ -67,8 +67,8 @@ do(RState) ->
               proplists:get_value(bootloader, Args, undefined),
               proplists:get_value(with_bootloader, Args)} of
             {undefined, undefined, true} ->
-                Force = proplists:get_value(force_firmware, Args, false),
-                case get_firmwares(RState, Force, RelName, RelVsn, ExtraArgs) of
+                Refresh = proplists:get_value(refresh, Args, false),
+                case get_firmwares(RState, Refresh, RelName, RelVsn, ExtraArgs) of
                     {error, _Reason} = Error -> Error;
                     {ok, SysFile, BootFile, RState2} ->
                         grisp_tools_pack(RState2, RelName, RelVsn,
@@ -76,7 +76,7 @@ do(RState) ->
                                           {bootloader, BootFile} | Args])
                 end;
             {undefined, undefined, false} ->
-                Force = proplists:get_value(force_firmware, Args, false),
+                Force = proplists:get_value(refresh, Args, false),
                 case get_firmware(RState, Force, RelName, RelVsn, ExtraArgs) of
                     {error, _Reason} = Error -> Error;
                     {ok, SysFile, RState2} ->
@@ -163,13 +163,13 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 
-get_firmwares(RState, Force, RelName, RelVsn, ExtraRelArgs) ->
+get_firmwares(RState, Refresh, RelName, RelVsn, ExtraRelArgs) ->
     SysFile
         = rebar3_grisp_util:firmware_file_path(RState, system, RelName, RelVsn),
     BootFile
         = rebar3_grisp_util:firmware_file_path(RState, boot, RelName, RelVsn),
     case {filelib:is_file(SysFile), filelib:is_file(BootFile)} of
-       {true, true} when Force =:= false ->
+       {true, true} when Refresh =:= false ->
             SysRelPath = grisp_tools_util:maybe_relative(SysFile, ?MAX_DDOT),
             BootRelPath = grisp_tools_util:maybe_relative(BootFile, ?MAX_DDOT),
             console("* Using existing system firmware: ~s", [SysRelPath]),
@@ -177,31 +177,31 @@ get_firmwares(RState, Force, RelName, RelVsn, ExtraRelArgs) ->
             {ok, SysFile, BootFile, RState};
         _ ->
             console("* Building firmwares...", []),
-            case build_firmwares(RState, true, Force, RelName,
+            case build_firmwares(RState, true, Refresh, RelName,
                                  RelVsn, ExtraRelArgs) of
                 {ok, RState2} -> {ok, SysFile, BootFile, RState2};
                 {error, _Reason} = Error -> Error
             end
     end.
 
-get_firmware(RState, Force, RelName, RelVsn, ExtraRelArgs) ->
+get_firmware(RState, Refresh, RelName, RelVsn, ExtraRelArgs) ->
     SysFile
         = rebar3_grisp_util:firmware_file_path(RState, system, RelName, RelVsn),
     case filelib:is_file(SysFile) of
-       true when Force =:= false ->
+       true when Refresh =:= false ->
             SysRelPath = grisp_tools_util:maybe_relative(SysFile, ?MAX_DDOT),
             console("* Using existing system firmware: ~s", [SysRelPath]),
             {ok, SysFile, RState};
         _ ->
             console("* Building system firmware...", []),
-            case build_firmwares(RState, false, Force, RelName,
+            case build_firmwares(RState, false, Refresh, RelName,
                                  RelVsn, ExtraRelArgs) of
                 {ok, RState2} -> {ok, SysFile, RState2};
                 {error, _Reason} = Error -> Error
             end
     end.
 
-build_firmwares(RState, WithBoot, Force, RelName, RelVsn, ExtraRelArgs) ->
+build_firmwares(RState, WithBoot, Refresh, RelName, RelVsn, ExtraRelArgs) ->
     Args = [
         "--relname", atom_to_list(RelName),
         "--relvsn", RelVsn,
@@ -210,14 +210,17 @@ build_firmwares(RState, WithBoot, Force, RelName, RelVsn, ExtraRelArgs) ->
     ] ++ case WithBoot of
         true -> ["--bootloader"];
         false -> []
-    end ++ case Force =:= true of
-        true -> ["--force-bundle"];
+    end ++ case Refresh =:= true of
+        true -> ["--refresh"];
         false -> []
     end ++ case ExtraRelArgs of
         [_|_] -> ["--" | ExtraRelArgs];
         _ -> []
     end,
-    rebar3_grisp_util:rebar_command(RState, grisp, firmware, Args).
+    case rebar3:run(["grisp", "firmware" | Args]) of
+        {error, _Reason} = Error -> Error;
+        {ok, _} -> {ok, RState}
+    end.
 
 grisp_tools_pack(RState, RelName, RelVsn, Args) ->
     SysFile = proplists:get_value(system, Args),

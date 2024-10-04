@@ -228,7 +228,7 @@ Generate a system firmware for a specific release:
 Generate all firmwares, forcing existing files to be overwritten and forcing the
 generation of the software bundle even if one already exists in `_grisp/deploy`:
 
-    rebar3 grisp firmware --bootloader --image --force --force-bundle
+    rebar3 grisp firmware --bootloader --image --force --refresh
 
 
 ### Firmware Update
@@ -386,9 +386,9 @@ Note that a toolchain is required for building the bootloader firmware, see the
 `deploy` command for more information on how to configure the toolchain.
 
 To force the recreation of the bundle and firmware(s) use the option
-`-F/--force-firmware`:
+`-r/--refresh`:
 
-    $ rebar3 grisp pack -F
+    $ rebar3 grisp pack -r
 
 To generate a signed package, use the `-k/--key` option:
 
