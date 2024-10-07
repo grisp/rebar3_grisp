@@ -311,7 +311,7 @@ index_releases(Releases) ->
 
 profile_postfix(RebarState) ->
     AllProfiles = rebar_state:current_profiles(RebarState),
-    case [atom_to_binary(P) || P <- AllProfiles, P =/= default, P =/= grisp] of
+    case [atom_to_binary(P) || P <- AllProfiles, P =/= default, P =/= grisp, P =/= test] of
         [] -> <<"">>;
         Profiles -> iolist_to_binary([".", lists:join($+, Profiles)])
     end.
