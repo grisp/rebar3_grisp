@@ -203,6 +203,13 @@ get_firmware(RState, Refresh, RelName, RelVsn, ExtraRelArgs) ->
 
 build_firmwares(RState, WithBoot, Refresh, RelName, RelVsn, ExtraRelArgs) ->
     Args = [
+        "as"
+    ] ++ [
+        lists:join(",", [atom_to_list(P)
+                         || P <- rebar_state:current_profiles(RState)])
+    ] ++ [
+        "grisp",
+        "firmware",
         "--relname", atom_to_list(RelName),
         "--relvsn", RelVsn,
         "--force",
@@ -217,7 +224,7 @@ build_firmwares(RState, WithBoot, Refresh, RelName, RelVsn, ExtraRelArgs) ->
         [_|_] -> ["--" | ExtraRelArgs];
         _ -> []
     end,
-    case rebar3:run(["grisp", "firmware" | Args]) of
+    case rebar3:run(Args) of
         {error, _Reason} = Error -> Error;
         {ok, _} -> {ok, RState}
     end.
