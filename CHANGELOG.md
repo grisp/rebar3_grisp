@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2024-10-11
+
+### Fixed
+
+- Fix the firmware and pack commands when a dependency is using semver.
+
 ### Changed
 
 - Renamed the grisp firmware command argument --force-bundle/-F and the grisp
@@ -349,7 +355,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.7.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.8.0...HEAD
+[2.8.0]: https://github.com/grisp/rebar3_grisp/compare/2.7.0...2.8.0
 [2.7.0]: https://github.com/grisp/rebar3_grisp/compare/2.6.1...2.7.0
 [2.6.1]: https://github.com/grisp/rebar3_grisp/compare/2.6.0...2.6.1
 [2.6.0]: https://github.com/grisp/rebar3_grisp/compare/2.5.0...2.6.0
