@@ -87,6 +87,8 @@ do(RState) ->
                 copy_dist_spec(RState, CopyDest, Force)
             ]
         end,
+        Profiles = [P || P <- rebar_state:current_profiles(RState),
+                         P =/= default, P =/= grisp, P =/= test],
         DeploySpec = #{
             project_root => ProjectRoot,
             apps => Apps,
@@ -97,6 +99,7 @@ do(RState) ->
             release => #{
                 name => RelName,
                 version => RelVsn,
+                profiles => Profiles,
                 tar => Tar,
                 force => Force
             },
@@ -295,6 +298,12 @@ event([deploy, distribute, copy, release, {copy, _Source, _Target}]) ->
     console("* Copying release...");
 event([deploy, distribute, copy, files, {init, _Dest}]) ->
     console("* Copying files...");
+event([deploy, distribute, copy, files, {error, file_exists, Path}]) ->
+    RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
+    abort(
+        "Destination ~s already exists (use --force to overwrite)",
+        [RelPath]
+    );
 event([deploy, distribute, bundle, files, {init, _Dest}]) ->
     console("* Bundling files...");
 event([deploy, distribute, _Name, files, {_, #{app := App, target := File}}]) ->
