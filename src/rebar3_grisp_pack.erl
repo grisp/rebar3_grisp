@@ -283,13 +283,55 @@ event([pack, prepare, _, {error, not_a_file, Path}]) ->
     abort("Not a regular file: ~s", [RelPath]);
 event([pack, package, _, {expanding, Filename}]) ->
     console("* Expanding compressed file ~s", [Filename]);
+event([pack, package, create_image]) ->
+    console("* Creating temporary disk image...");
+event([pack, package, create_image, {error, Reason}]) ->
+    abort_message("Failed to create temporary disk image: ~s", Reason);
+event([pack, package, create_partitions]) ->
+    console("* Creating disk partition table...");
+event([pack, package, create_partitions, {error, Reason}]) ->
+    abort_message("Failed to create partition table", Reason);
+event([pack, package, copy_firmware]) ->
+    console("* Writing firmware...");
+event([pack, package, copy_firmware, {error, Reason}]) ->
+    abort_message("Failed to write firmware", Reason);
+event([pack, package, extract_manifest]) ->
+    console("* Extracting software manifest...");
+event([pack, package, extract_manifest, {error, Reason}]) ->
+    abort_message("Failed to extract software manifest", Reason);
+event([pack, package, extract_manifest, {manifest, undefined}]) ->
+    warn("    Software manifest not found !");
+event([pack, package, extract_manifest, {manifest, Manifest}]) ->
+    Id = proplists:get_value(id, Manifest),
+    console("    Using software manifest with identifier ~s", [Id]);
+event([pack, package, close_image]) ->
+    console("* Cleaning up temporary disk image...");
+event([pack, package, close_image, {error, Reason}]) ->
+    abort_message("Failed to cleanup temporary disk image", Reason);
 event([pack, package, build_package]) ->
     console("* Creating software update package...");
 event([pack, package, _, {done, Path}]) ->
     RelPath = grisp_tools_util:maybe_relative(Path, ?MAX_DDOT),
     console("    Software update package generated: ~s", [RelPath]);
 event([pack, package, _, {error, Reason}]) ->
-    abort_message("Failed to create package: ~s", Reason);
+    abort_message("Failed to create package", Reason);
+event([pack, package, _, {exec, Args}]) ->
+    LogLine = iolist_to_binary(lists:join(" ", Args)),
+    debug("command: ~s", [LogLine]);
+event([pack, package, _, {exit, {status, Status}}]) ->
+    debug("[exit ~w]", [Status]);
+event([pack, package, _, {exit, {signal, Sig}}]) ->
+    debug("[signal ~w]", [Sig]);
+event([pack, package, _, {Stream, eof}])
+  when Stream =:= stdin; Stream =:= stdout; Stream =:= stderr ->
+    debug("[~s closed]", [Stream]);
+event([pack, package, _, {Stream, Data}])
+  when Stream =:= stdin; Stream =:= stdout; Stream =:= stderr ->
+    Str = unicode:characters_to_list(Data),
+    debug("~s ~s", [stream_tag(Stream), string:strip(Str, right, $\n)]);
+event([pack, package, _, {Tag, _Term}])
+  when Tag =:= result; Tag =:= error ->
+    ok;
 event(Event) ->
     debug("[rebar3_grisp] ~p", [Event]),
     case lists:last(Event) of
@@ -301,6 +343,10 @@ event(Event) ->
             abort("Unexpected ~p error", [Reason]);
         _ -> ok
     end.
+
+stream_tag(stdin) -> "<<";
+stream_tag(stdout) -> "1>";
+stream_tag(stderr) -> "2>".
 
 abort_message(Prefix, Msg) when is_binary(Msg) ->
     abort("~s; ~s", [Prefix, Msg]);
