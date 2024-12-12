@@ -293,7 +293,7 @@ event([firmware, prepare, _, {error, not_a_file, Path}]) ->
 event([firmware, build_firmware, create_image]) ->
     console("* Creating disk image...");
 event([firmware, build_firmware, create_image, {error, Reason}]) ->
-    abort_message("Failed to create firmware image file: ~s", Reason);
+    abort_message("Failed to create firmware image file", Reason);
 event([firmware, build_firmware, copy_bootloader]) ->
     console("* Writing bootloader...");
 event([firmware, build_firmware, copy_bootloader, {error, Reason}]) ->
