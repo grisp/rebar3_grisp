@@ -1,19 +1,18 @@
-%% rebar.config.script for plugin
+%% rebar.config.script
 
-%% Detect OTP version
+%% OTP version
 OTPVersionStr = erlang:system_info(otp_release),
 OTPVersion = list_to_integer(OTPVersionStr).
 
-%% Decide erlexec version
-ErlexecVersion = if
-    OTPVersion < 27 -> "2.0.7";
-    true -> "latest"
+if
+    OTPVersion < 27 -> 
+        [{overrides, [
+            {override, edifa, [
+                {deps, [
+                    {erlexec, "2.0.7"}
+                ]}
+            ]}
+        ]}];
+    true -> 
+        []
 end.
-
-[{overrides, [
-    {override, edifa, [
-        {deps, [
-            {erlexec, ErlexecVersion}
-        ]}
-    ]}
-]}].
