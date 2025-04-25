@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2025-04-24
+
+### Added
+
+- Add Manifest validation Events [#97](https://github.com/grisp/rebar3_grisp/pull/97)
+- Pass the profile list to the deploy command to be included in the manifest [#96](https://github.com/grisp/rebar3_grisp/pull/96)
+
+### Changed
+
+- Update templates of rebar3 grisp configure for grisp.io. [#90](https://github.com/grisp/rebar3_grisp/pull/90)
+
+### Fixed
+
+- Fix CI workflow. [#98](https://github.com/grisp/rebar3_grisp/pull/98)
+
 ## [2.8.0] - 2024-10-11
 
 ### Fixed
@@ -355,7 +370,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.8.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.9.0...HEAD
+[2.9.0]: https://github.com/grisp/rebar3_grisp/compare/2.8.0...2.9.0
 [2.8.0]: https://github.com/grisp/rebar3_grisp/compare/2.7.0...2.8.0
 [2.7.0]: https://github.com/grisp/rebar3_grisp/compare/2.6.1...2.7.0
 [2.6.1]: https://github.com/grisp/rebar3_grisp/compare/2.6.0...2.6.1
