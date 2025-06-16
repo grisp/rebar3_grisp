@@ -31,6 +31,9 @@ init(State) ->
                 },
                 {tar, $t, "tar", {boolean, false},
                     "Create tarball with OTP installation for online repository"
+                },
+                {update_prebuild, $p, "update-prebuild", {boolean, false},
+                    "Update OTP prebuilt preloaded modules. Enable if some preloaded modules are patched"
                 }
             ]},
             {profiles, [default]},
@@ -63,7 +66,9 @@ do(RState) ->
         || {F, D} <- [
             {clean, false},
             {configure, true},
-            {tar, false}]
+            {tar, false},
+            {update_prebuild, false}
+        ]
     ]),
 
     try
