@@ -491,7 +491,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
     {otp, [{version, "25"}]},
     {build, [
         {toolchain, [
-            {directory, "/PATH/TO/TOOLCHAIN-ROOT"}
+            {directory, "/PATH/TO/grisp2-rtems-toolchain/rtems/VERSION/"}
             % Or use Docker
             {docker, "grisp/grisp2-rtems-toolchain"}
             % If both are specified, only 'directory' is used
