@@ -521,7 +521,7 @@ You can run `rebar3 grisp report` to gather info about the project configuration
 To test the plugin and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plugin. This can be useful to test deployments locally before copying them to an SD card:
 
 ```console
-$ rebar3 new grispapp name=grisp_test dest=/tmp/GRISP_SD_CARD
+$ rebar3 grisp configure --name="grisp_test" --dest="GRISP_SD_CARD"
 ```
 
 Go into the project folder and prepare the checkout directory used by Rebar 3 for dependency overrides:
