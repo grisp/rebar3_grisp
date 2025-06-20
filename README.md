@@ -1,6 +1,6 @@
 # rebar3_grisp
 
-Rebar plug-in for the GRiSP project. To obtain information about the plugin and
+Rebar plugin for the GRiSP project. To obtain information about the plugin and
 its tasks, use the following command:
 
 ```sh
@@ -32,7 +32,7 @@ rebar3 help grisp [<task>]
 
 ### Globally
 
-To install the plug-in globally, add the plug-in to your plug-ins list in
+To install the plugin globally, add the plugin to your plugins list in
 `~/.config/rebar3/rebar.config`:
 
 ```erlang
@@ -42,7 +42,7 @@ To install the plug-in globally, add the plug-in to your plug-ins list in
 ]}.
 ```
 
-The first time you use Rebar the plug-in will be installed. To upgrade the plug-in to the latest version, you need to first update the Hex index and then the plug-in:
+The first time you use Rebar the plugin will be installed. To upgrade the plugin to the latest version, you need to first update the Hex index and then the plugin:
 
 ```console
 $ rebar3 update
@@ -58,13 +58,13 @@ $ rebar3 plugins upgrade rebar3_grisp
 
 ### For an Existing Project
 
-Add the plug-in to your rebar config:
+Add the plugin to your rebar config:
 
 ```erlang
 {plugins, [rebar3_grisp]}.
 ```
 
-Then just call your plug-in directly in the root of the existing application:
+Then just call your plugin directly in the root of the existing application:
 
 ```console
 $ rebar3 grisp
@@ -77,7 +77,7 @@ $ rebar3 grisp
 
 Prerequisites:
 
-* [Install Plug-In Globally](#globally)
+* [Install Plugin Globally](#globally)
 
 To create a new GRiSP project:
 
@@ -103,7 +103,7 @@ This command will create a new GRiSP project named "my_grisp_app" with a network
 
 Note that some options require others. For example, if you want to setup the ssid of the wifi, then you also need to activate the network and wifi configuration (`-n true` and `-w true`).
 
-The specific variables provided by this plug-in are:
+The specific variables provided by this plugin are:
 
 * **`interactive`** activate the interactive mode
 * **`name`** is the name of the OTP application
@@ -460,7 +460,7 @@ level is at least `INFO`.
 
 ## Listing Packages
 
-The plug-in can list pre-built GRiSP OTP packages and toolchains:
+The plugin can list pre-built GRiSP OTP packages and toolchains:
 
 ```console
 $ rebar3 grisp package list
@@ -519,7 +519,7 @@ You can run `rebar3 grisp report` to gather info about the project configuration
 
 ## Development
 
-To test the plug-in and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plug-in. This can be useful to test deployments locally before copying them to an SD card:
+To test the plugin and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plugin. This can be useful to test deployments locally before copying them to an SD card:
 
 ```console
 $ rebar3 new grispapp name=grisp_test dest=/tmp/GRISP_SD_CARD
