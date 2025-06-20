@@ -536,8 +536,8 @@ $ mkdir -p _checkouts
 You need to clone both _rebar3_grisp_ (this repo) and its dependency [_grisp_tools_](https://github.com/grisp/grisp_tools). If you want the latest `master` versions:
 
 ```console
-$ git clone git clone https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
-$ git clone git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+$ git clone https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
+$ git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
 ```
 
 ### Testing a Specific Branch
@@ -545,8 +545,8 @@ $ git clone git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3
 Alternatively, clone a specific branch. Replace `$REBAR3_PLUGIN_BRANCH` with the branch name you want from _rebar3_grisp_ and `$GRISP_TOOLS_BRANCH` with the branch name you want from _grisp_tool_:
 
 ```console
-$ git clone git clone --single-branch --branch $REBAR3_PLUGIN_BRANCH https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
-$ git clone git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+$ git clone --single-branch --branch $REBAR3_PLUGIN_BRANCH https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
+$ git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
 ```
 
 In case you only need a specific branch of _rebar3_grisp_, you can default to using the `master` version of _grisp_tools_.
