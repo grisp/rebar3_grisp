@@ -13,12 +13,17 @@ rebar3 help grisp [<task>]
     - [Globally](#globally)
     - [For an Existing Project](#for-an-existing-project)
   - [Create New Application](#create-new-application)
-  - [Compile the project](#compile-the-project)
+  - [Compile the Project](#compile-the-project)
   - [Deploy an Application](#deploy-an-application)
     - [Configuration](#configuration)
+  - [Generate GRiSP 2 Firmwares](#generate-grisp-2-firmwares)
+    - [Firmware Update](#firmware-update)
+    - [Cautions](#cautions)
+  - [Build a Software Update Package](#build-a-software-update-package)
+    - [Updating a GRiSP Board](#updating-a-grisp-board)
   - [Listing Packages](#listing-packages)
   - [Build OTP for GRiSP](#build-otp-for-grisp)
-  - [Bug reports](#bug-reports)
+  - [Bug Reports](#bug-reports)
   - [Development](#development)
     - [Testing `master`](#testing-master)
     - [Testing a Specific Branch](#testing-a-specific-branch)
@@ -108,19 +113,19 @@ The specific variables provided by this plug-in are:
 * **`otp_version`** is the target Erlang/OTP version used on the GRiSP board
 * **`network`** specifies if the project contains network configuration files
 * **`wifi`** specifies if the project contains wifi configuration files. (requires `network`)
-* **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
-* **`psk`** is the psk of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
-* **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`) 
+* **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`)
+* **`psk`** is the psk of the wifi network you want your board to connect to. (requires `network` and `wifi`)
+* **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`)
 * **`grisp_io_linking`** specifies if you want your board to link itself to GRiSP.io. (requires `network` and `grisp_io`)
-* **`token`** is your personnal GRiSP.io token. (requires `network`, `grip_io` and `grisp_io_linking`) 
-* **`epmd`** specifies if you want your board to have epmd. (requires `network`) 
-* **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`) 
+* **`token`** is your personnal GRiSP.io token. (requires `network`, `grip_io` and `grisp_io_linking`)
+* **`epmd`** specifies if you want your board to have epmd. (requires `network`)
+* **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`)
 
 Some variables are modfiable only through the command line. These variables are:
 * **`desc`** is the short description of the GRiSP application
 * **`copyright_year`** is the copyright year
 * **`author_name`** is the name of the author of the project
-* **`author_email`** is the email of the author of the project 
+* **`author_email`** is the email of the author of the project
 
 For a full list of customizable variables as well as their short form, run `rebar3 help grisp configure`.
 
@@ -131,7 +136,7 @@ rebar3 grisp configure --name="mygrispapp"
 ```
 Here the CLI won't ask you for the name of your GRiSP project because it's already provided.
 
-## Compile the project
+## Compile the Project
 
 ```rebar3 compile```
 
@@ -369,7 +374,7 @@ system is `/dev/mmc1.1`. See [the caution about truncated images firmware](#with
 for details on how to consult and change the current active system partition.
 
 
-## Build Software Update Package
+## Build a Software Update Package
 
 To create a GRiSP software update package, use the 'pack' command:
 
@@ -508,7 +513,7 @@ You can create the tarballs we use for distribution on our CDN with `rebar3 gris
 The built Erlang distribution and its runtime system is located in the project
 folder, under the path `_grisp/otp/<version>/install`.
 
-## Bug reports
+## Bug Reports
 
 You can run `rebar3 grisp report` to gather info about the project configuration. The user can view and edit the generated text files. It's possible to pack them later adding `--tar` to the same command. Providing such report file can speedup debugging and support from the dev team.
 
