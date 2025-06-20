@@ -93,35 +93,34 @@ You can also use the command in a non-interactive way:
 rebar3 grisp configure -i false
 ```
 
-Unless stated otherwise, the non-interactive option will use the default values to create the GRiSP project. You can overwrite the default values in the command:
+Unless stated otherwise, the non-interactive option will use the default values to create the GRiSP project. You can override the default values in the command:
 ```
 rebar3 grisp configure -i false --name="my_grisp_app" -n true -w true --ssid="mywifi" --psk="wifipsk"
 ```
-This command will create a new GRiSP project named "my_grisp_app" with a network (`-n true`) and wifi (`-w true`) configuration already setup. The configuration will use the ssid "mywifi" and the psk "wifipsk".
+This command will create a new GRiSP project named "my_grisp_app" with a network (`-n true`) and Wi-Fi (`-w true`) configuration already set up. The configuration will use the SSID "mywifi" and the PSK "wifipsk".
 
 
-
-Note that some options require others. For example, if you want to setup the ssid of the wifi, then you also need to activate the network and wifi configuration (`-n true` and `-w true`).
+Note that some options require others. For example, if you want to set up the SSID of the Wi-Fi, then you also need to activate the network and Wi-Fi configuration (`-n true` and `-w true`).
 
 The specific variables provided by this plugin are:
 
 * **`interactive`** activate the interactive mode
 * **`name`** is the name of the OTP application
 * **`dest`** is the destination path for deployment. This should point to where
-  your SD-card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
-  is the name of the SD-card partition)
+  your SD card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
+  is the name of the SD card partition)
 * **`otp_version`** is the target Erlang/OTP version used on the GRiSP board
 * **`network`** specifies if the project contains network configuration files
-* **`wifi`** specifies if the project contains wifi configuration files. (requires `network`)
-* **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`)
-* **`psk`** is the psk of the wifi network you want your board to connect to. (requires `network` and `wifi`)
+* **`wifi`** specifies if the project contains Wi-Fi configuration files. (requires `network`)
+* **`ssid`** is the SSID of the Wi-Fi network you want your board to connect to. (requires `network` and `wifi`)
+* **`psk`** is the PSK of the Wi-Fi network you want your board to connect to. (requires `network` and `wifi`)
 * **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`)
 * **`grisp_io_linking`** specifies if you want your board to link itself to GRiSP.io. (requires `network` and `grisp_io`)
-* **`token`** is your personnal GRiSP.io token. (requires `network`, `grip_io` and `grisp_io_linking`)
+* **`token`** is your personal GRiSP.io token. (requires `network`, `grisp_io` and `grisp_io_linking`)
 * **`epmd`** specifies if you want your board to have epmd. (requires `network`)
 * **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`)
 
-Some variables are modfiable only through the command line. These variables are:
+Some variables are modifiable only through the command line. These variables are:
 * **`desc`** is the short description of the GRiSP application
 * **`copyright_year`** is the copyright year
 * **`author_name`** is the name of the author of the project
@@ -166,8 +165,8 @@ Above command will try to download a crosscompiled OTP version from our CDN and 
 
 Run `rebar3 help grisp deploy` for information on all arguments.
 
-To generate a tarball with all the deployed files, add the option `-t/--tar`,
-all the files will be bundled in a a tarball under `_grisp/deploy`:
+To generate a tarball with all the deployed files, add the option `-t/--tar`.
+All the files will be bundled into a tarball under `_grisp/deploy`:
 
 ```
 rebar3 grisp deploy --tar
@@ -211,10 +210,10 @@ eMMC. There is three types of firmware that can be generated:
    partition table and the system partitions. It is meant to be written on the
    GRiSP 2 board to reset it completely with the new software. If the image is
    truncated (it is by default), the image only contains the first system
-   partition. It means that when writing the firmware to the eMMC, the second
+   partition. This means that when writing the firmware to the eMMC, the second
    system partition will be untouched. To generate an eMMC image firmware under
-   `_grisp/firmware`, add the option `-i` or `--image`, to disable truncating
-   so the image contains both system partitions, uses the option `-t false` or
+   `_grisp/firmware`, add the option `-i` or `--image`; to disable truncating
+   so the image contains both system partitions, use the option `-t false` or
    `--truncate false`.
  - **Bootloader Firmware**:
    The bootloader firmware contains only the bootloader and the partition table.
@@ -355,7 +354,7 @@ written. If the active system is the second one, the board will continue to boot
 the old software. You will need to manually change the active system partition
 in the bootloader console and restart the board.
 
-To consule the current active system partition in the bootloader console:
+To consult the current active system partition in the bootloader console:
 
     $ echo $state.bootstate.active_system
 
@@ -426,10 +425,10 @@ If `signature_check` is set to `true` the software package must be signed using
 the `-k/--key` option, and the public key must be available in the directory
 configured by `signature_certificates`.
 
-When these conditions are met, you can follow these step to perform a A/B
+When these conditions are met, you can follow these steps to perform an A/B
 software update of a GRiSP board:
 
- - Unpack the software update package in some local directory:
+ - Unpack the software update package into a local directory:
 
     **`any`** `$ mkdir -p releases/${RELNAME}/${RELVSN}`
     **`any`** `$ tar -C releases/${RELNAME}/${RELVSN} -xvf _grisp/update/grisp2.${REL_NAME}".${RELVSN}.${PROFILE}.tar -xvf`
@@ -450,7 +449,7 @@ software update of a GRiSP board:
 
 - Reset the GRiSP2 board using the onboard reset button.
 
-- Validate the new software version on the GRiSP2 console:
+- Validate the new software version in the GRiSP2 console:
 
     **`GRiSP`** `$ grisp_updater:validate().`
 
@@ -479,7 +478,7 @@ macOS          11.6.3             https://grisp.s3.amazonaws.com/platforms/grisp
 
 ## Build OTP for GRiSP
 
-The fastest way is to use our docker image `grisp/grisp2-rtems-toolchain`:
+The fastest way is to use our Docker image `grisp/grisp2-rtems-toolchain`:
 
 Add the toolchain image name to the `rebar.config` under `grisp` → `build` → `toolchain` → `docker`
 
@@ -493,7 +492,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` → `build` �
     {build, [
         {toolchain, [
             {directory, "/PATH/TO/TOOLCHAIN-ROOT"}
-            % Or use docker
+            % Or use Docker
             {docker, "grisp/grisp2-rtems-toolchain"}
             % If both are specified, only 'directory' is used
         ]}
