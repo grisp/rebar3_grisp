@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2025-07-08
+
+### Changed
+
+- When using `rebar3 grisp configure` the version of `grisp_connect` is now unlocked [#99](https://github.com/grisp/rebar3_grisp/pull/99)
+
+### Added
+
+- Support for GRiSP Nano [#100](https://github.com/grisp/rebar3_grisp/pull/100)
+- New option `update_prebuild` [#100](https://github.com/grisp/rebar3_grisp/pull/100)
+- Support GRISP2 projects that build with the [BLAS](https://github.com/erlef/blas) library, GRiSP shell hooks are now injected in the build [#104](https://github.com/grisp/rebar3_grisp/pull/104)
+
 ## [2.9.0] - 2025-04-24
 
 ### Added
@@ -370,7 +382,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.9.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.10.0...HEAD
+[2.10.0]: https://github.com/grisp/rebar3_grisp/compare/2.9.0...2.10.0
 [2.9.0]: https://github.com/grisp/rebar3_grisp/compare/2.8.0...2.9.0
 [2.8.0]: https://github.com/grisp/rebar3_grisp/compare/2.7.0...2.8.0
 [2.7.0]: https://github.com/grisp/rebar3_grisp/compare/2.6.1...2.7.0
