@@ -1,0 +1,16 @@
+apps_dirs:
+  - "."
+deps_dirs:
+  - "_build/default/lib/*"
+  - "_build/default/checkouts/*"
+  - "_build/default/plugins/rebar/apps/rebar"
+  - "_build/default/plugins/rebar/apps/rebar/vendored"
+  - "_build/default/plugins/*"
+include_dirs:
+  - "_build/default/lib/*/include"
+  - "_checkouts/*/include"
+  - "_build/default/plugins/rebar/apps/rebar"
+  - "_build/default/plugins/rebar/apps/rebar/vendored"
+  - "_build/default/plugins/*/include"
+code_path_extra_dirs:
+  - "_build/default/lib/*/ebin"
