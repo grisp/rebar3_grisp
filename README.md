@@ -1,6 +1,6 @@
 # rebar3_grisp
 
-Rebar plug-in for the GRiSP project. To obtain information about the plugin and
+Rebar plugin for the GRiSP project. To obtain information about the plugin and
 its tasks, use the following command:
 
 ```sh
@@ -13,12 +13,17 @@ rebar3 help grisp [<task>]
     - [Globally](#globally)
     - [For an Existing Project](#for-an-existing-project)
   - [Create New Application](#create-new-application)
-  - [Compile the project](#compile-the-project)
+  - [Compile the Project](#compile-the-project)
   - [Deploy an Application](#deploy-an-application)
     - [Configuration](#configuration)
+  - [Generate GRiSP 2 Firmwares](#generate-grisp-2-firmwares)
+    - [Firmware Update](#firmware-update)
+    - [Cautions](#cautions)
+  - [Build a Software Update Package](#build-a-software-update-package)
+    - [Updating a GRiSP Board](#updating-a-grisp-board)
   - [Listing Packages](#listing-packages)
   - [Build OTP for GRiSP](#build-otp-for-grisp)
-  - [Bug reports](#bug-reports)
+  - [Bug Reports](#bug-reports)
   - [Development](#development)
     - [Testing `master`](#testing-master)
     - [Testing a Specific Branch](#testing-a-specific-branch)
@@ -27,7 +32,7 @@ rebar3 help grisp [<task>]
 
 ### Globally
 
-To install the plug-in globally, add the plug-in to your plug-ins list in
+To install the plugin globally, add the plugin to your plugins list in
 `~/.config/rebar3/rebar.config`:
 
 ```erlang
@@ -37,7 +42,7 @@ To install the plug-in globally, add the plug-in to your plug-ins list in
 ]}.
 ```
 
-The first time you use Rebar the plug-in will be installed. To upgrade the plug-in to the latest version, you need to first update the Hex index and then the plug-in:
+The first time you use Rebar the plugin will be installed. To upgrade the plugin to the latest version, you need to first update the Hex index and then the plugin:
 
 ```console
 $ rebar3 update
@@ -53,13 +58,13 @@ $ rebar3 plugins upgrade rebar3_grisp
 
 ### For an Existing Project
 
-Add the plug-in to your rebar config:
+Add the plugin to your rebar config:
 
 ```erlang
 {plugins, [rebar3_grisp]}.
 ```
 
-Then just call your plug-in directly in the root of the existing application:
+Then just call your plugin directly in the root of the existing application:
 
 ```console
 $ rebar3 grisp
@@ -72,7 +77,7 @@ $ rebar3 grisp
 
 Prerequisites:
 
-* [Install Plug-In Globally](#globally)
+* [Install Plugin Globally](#globally)
 
 To create a new GRiSP project:
 
@@ -88,39 +93,38 @@ You can also use the command in a non-interactive way:
 rebar3 grisp configure -i false
 ```
 
-Unless stated otherwise, the non-interactive option will use the default values to create the GRiSP project. You can overwrite the default values in the command:
+Unless stated otherwise, the non-interactive option will use the default values to create the GRiSP project. You can override the default values in the command:
 ```
 rebar3 grisp configure -i false --name="my_grisp_app" -n true -w true --ssid="mywifi" --psk="wifipsk"
 ```
-This command will create a new GRiSP project named "my_grisp_app" with a network (`-n true`) and wifi (`-w true`) configuration already setup. The configuration will use the ssid "mywifi" and the psk "wifipsk".
+This command will create a new GRiSP project named "my_grisp_app" with a network (`-n true`) and Wi-Fi (`-w true`) configuration already set up. The configuration will use the SSID "mywifi" and the PSK "wifipsk".
 
 
+Note that some options require others. For example, if you want to set up the SSID of the Wi-Fi, then you also need to activate the network and Wi-Fi configuration (`-n true` and `-w true`).
 
-Note that some options require others. For example, if you want to setup the ssid of the wifi, then you also need to activate the network and wifi configuration (`-n true` and `-w true`).
-
-The specific variables provided by this plug-in are:
+The specific variables provided by this plugin are:
 
 * **`interactive`** activate the interactive mode
 * **`name`** is the name of the OTP application
 * **`dest`** is the destination path for deployment. This should point to where
-  your SD-card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
-  is the name of the SD-card partition)
+  your SD card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
+  is the name of the SD card partition)
 * **`otp_version`** is the target Erlang/OTP version used on the GRiSP board
 * **`network`** specifies if the project contains network configuration files
-* **`wifi`** specifies if the project contains wifi configuration files. (requires `network`)
-* **`ssid`** is the ssid of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
-* **`psk`** is the psk of the wifi network you want your board to connect to. (requires `network` and `wifi`) 
-* **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`) 
+* **`wifi`** specifies if the project contains Wi-Fi configuration files. (requires `network`)
+* **`ssid`** is the SSID of the Wi-Fi network you want your board to connect to. (requires `network` and `wifi`)
+* **`psk`** is the PSK of the Wi-Fi network you want your board to connect to. (requires `network` and `wifi`)
+* **`grisp_io`** specifies if you want your board to connect and use GRiSP.io. (requires `network`)
 * **`grisp_io_linking`** specifies if you want your board to link itself to GRiSP.io. (requires `network` and `grisp_io`)
-* **`token`** is your personnal GRiSP.io token. (requires `network`, `grip_io` and `grisp_io_linking`) 
-* **`epmd`** specifies if you want your board to have epmd. (requires `network`) 
-* **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`) 
+* **`token`** is your personal GRiSP.io token. (requires `network`, `grisp_io` and `grisp_io_linking`)
+* **`epmd`** specifies if you want your board to have epmd. (requires `network`)
+* **`cookie`** is the magic cookie that your board should use. (requires `network` and `epmd`)
 
-Some variables are modfiable only through the command line. These variables are:
+Some variables are modifiable only through the command line. These variables are:
 * **`desc`** is the short description of the GRiSP application
 * **`copyright_year`** is the copyright year
 * **`author_name`** is the name of the author of the project
-* **`author_email`** is the email of the author of the project 
+* **`author_email`** is the email of the author of the project
 
 For a full list of customizable variables as well as their short form, run `rebar3 help grisp configure`.
 
@@ -131,7 +135,7 @@ rebar3 grisp configure --name="mygrispapp"
 ```
 Here the CLI won't ask you for the name of your GRiSP project because it's already provided.
 
-## Compile the project
+## Compile the Project
 
 ```rebar3 compile```
 
@@ -161,8 +165,8 @@ Above command will try to download a crosscompiled OTP version from our CDN and 
 
 Run `rebar3 help grisp deploy` for information on all arguments.
 
-To generate a tarball with all the deployed files, add the option `-t/--tar`,
-all the files will be bundled in a a tarball under `_grisp/deploy`:
+To generate a tarball with all the deployed files, add the option `-t/--tar`.
+All the files will be bundled into a tarball under `_grisp/deploy`:
 
 ```
 rebar3 grisp deploy --tar
@@ -206,10 +210,10 @@ eMMC. There is three types of firmware that can be generated:
    partition table and the system partitions. It is meant to be written on the
    GRiSP 2 board to reset it completely with the new software. If the image is
    truncated (it is by default), the image only contains the first system
-   partition. It means that when writing the firmware to the eMMC, the second
+   partition. This means that when writing the firmware to the eMMC, the second
    system partition will be untouched. To generate an eMMC image firmware under
-   `_grisp/firmware`, add the option `-i` or `--image`, to disable truncating
-   so the image contains both system partitions, uses the option `-t false` or
+   `_grisp/firmware`, add the option `-i` or `--image`; to disable truncating
+   so the image contains both system partitions, use the option `-t false` or
    `--truncate false`.
  - **Bootloader Firmware**:
    The bootloader firmware contains only the bootloader and the partition table.
@@ -350,7 +354,7 @@ written. If the active system is the second one, the board will continue to boot
 the old software. You will need to manually change the active system partition
 in the bootloader console and restart the board.
 
-To consule the current active system partition in the bootloader console:
+To consult the current active system partition in the bootloader console:
 
     $ echo $state.bootstate.active_system
 
@@ -369,7 +373,7 @@ system is `/dev/mmc1.1`. See [the caution about truncated images firmware](#with
 for details on how to consult and change the current active system partition.
 
 
-## Build Software Update Package
+## Build a Software Update Package
 
 To create a GRiSP software update package, use the 'pack' command:
 
@@ -421,10 +425,10 @@ If `signature_check` is set to `true` the software package must be signed using
 the `-k/--key` option, and the public key must be available in the directory
 configured by `signature_certificates`.
 
-When these conditions are met, you can follow these step to perform a A/B
+When these conditions are met, you can follow these steps to perform an A/B
 software update of a GRiSP board:
 
- - Unpack the software update package in some local directory:
+ - Unpack the software update package into a local directory:
 
     **`any`** `$ mkdir -p releases/${RELNAME}/${RELVSN}`
     **`any`** `$ tar -C releases/${RELNAME}/${RELVSN} -xvf _grisp/update/grisp2.${REL_NAME}".${RELVSN}.${PROFILE}.tar -xvf`
@@ -445,7 +449,7 @@ software update of a GRiSP board:
 
 - Reset the GRiSP2 board using the onboard reset button.
 
-- Validate the new software version on the GRiSP2 console:
+- Validate the new software version in the GRiSP2 console:
 
     **`GRiSP`** `$ grisp_updater:validate().`
 
@@ -455,7 +459,7 @@ level is at least `INFO`.
 
 ## Listing Packages
 
-The plug-in can list pre-built GRiSP OTP packages and toolchains:
+The plugin can list pre-built GRiSP OTP packages and toolchains:
 
 ```console
 $ rebar3 grisp package list
@@ -474,7 +478,7 @@ macOS          11.6.3             https://grisp.s3.amazonaws.com/platforms/grisp
 
 ## Build OTP for GRiSP
 
-The fastest way is to use our docker image `grisp/grisp2-rtems-toolchain`:
+The fastest way is to use our Docker image `grisp/grisp2-rtems-toolchain`:
 
 Add the toolchain image name to the `rebar.config` under `grisp` → `build` → `toolchain` → `docker`
 
@@ -487,8 +491,8 @@ Add the path to the toolchain to the `rebar.config` under `grisp` → `build` �
     {otp, [{version, "25"}]},
     {build, [
         {toolchain, [
-            {directory, "/PATH/TO/TOOLCHAIN-ROOT"}
-            % Or use docker
+            {directory, "/PATH/TO/grisp2-rtems-toolchain/rtems/VERSION/"}
+            % Or use Docker
             {docker, "grisp/grisp2-rtems-toolchain"}
             % If both are specified, only 'directory' is used
         ]}
@@ -508,16 +512,16 @@ You can create the tarballs we use for distribution on our CDN with `rebar3 gris
 The built Erlang distribution and its runtime system is located in the project
 folder, under the path `_grisp/otp/<version>/install`.
 
-## Bug reports
+## Bug Reports
 
 You can run `rebar3 grisp report` to gather info about the project configuration. The user can view and edit the generated text files. It's possible to pack them later adding `--tar` to the same command. Providing such report file can speedup debugging and support from the dev team.
 
 ## Development
 
-To test the plug-in and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plug-in. This can be useful to test deployments locally before copying them to an SD card:
+To test the plugin and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plugin. This can be useful to test deployments locally before copying them to an SD card:
 
 ```console
-$ rebar3 new grispapp name=grisp_test dest=/tmp/GRISP_SD_CARD
+$ rebar3 grisp configure --name="grisp_test" --dest="GRISP_SD_CARD"
 ```
 
 Go into the project folder and prepare the checkout directory used by Rebar 3 for dependency overrides:
@@ -532,8 +536,8 @@ $ mkdir -p _checkouts
 You need to clone both _rebar3_grisp_ (this repo) and its dependency [_grisp_tools_](https://github.com/grisp/grisp_tools). If you want the latest `master` versions:
 
 ```console
-$ git clone git clone https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
-$ git clone git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+$ git clone https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
+$ git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
 ```
 
 ### Testing a Specific Branch
@@ -541,8 +545,8 @@ $ git clone git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3
 Alternatively, clone a specific branch. Replace `$REBAR3_PLUGIN_BRANCH` with the branch name you want from _rebar3_grisp_ and `$GRISP_TOOLS_BRANCH` with the branch name you want from _grisp_tool_:
 
 ```console
-$ git clone git clone --single-branch --branch $REBAR3_PLUGIN_BRANCH https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
-$ git clone git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+$ git clone --single-branch --branch $REBAR3_PLUGIN_BRANCH https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
+$ git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
 ```
 
 In case you only need a specific branch of _rebar3_grisp_, you can default to using the `master` version of _grisp_tools_.
