@@ -1,0 +1,23 @@
+
+%% Workaround for erlexec
+% We depend on edifa that uses erlexec.
+% The problem with erlexec is that its documentation up to version 2.0.7 causes a compilation error on OTP 27.
+% This script adds the override to the rebar.config file if the OTP version is less than 27.
+
+EdifaOverride = {override, edifa, [{deps, [{erlexec, "2.0.7"}]}]}.
+
+OTPVersionStr = erlang:system_info(otp_release).
+OTPVersion = list_to_integer(OTPVersionStr).
+
+Overrides = case lists:keyfind(overrides, 1, CONFIG) of
+    false -> [];
+    {overrides, O} -> O
+end.
+
+case OTPVersion of
+    V when V < 27 ->
+        NewOverrrides = {overrides, [EdifaOverride | Overrides]},
+        lists:keystore(overrides, 1, CONFIG, NewOverrrides);
+    _ ->
+        CONFIG
+end.
