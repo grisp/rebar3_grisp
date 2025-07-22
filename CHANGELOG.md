@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.1] - 2025-07-22
+
+### Fixed
+
+- Restore the rebar3 script configuration to ensure erlexec 2.0.7 for OTP versions below 27 [#105](https://github.com/grisp/rebar3_grisp/pull/105)
+
 ## [2.10.0] - 2025-07-08
 
 ### Changed
@@ -382,7 +388,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.10.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.10.1...HEAD
+[2.10.1]: https://github.com/grisp/rebar3_grisp/compare/2.10.0...2.10.1
 [2.10.0]: https://github.com/grisp/rebar3_grisp/compare/2.9.0...2.10.0
 [2.9.0]: https://github.com/grisp/rebar3_grisp/compare/2.8.0...2.9.0
 [2.8.0]: https://github.com/grisp/rebar3_grisp/compare/2.7.0...2.8.0
