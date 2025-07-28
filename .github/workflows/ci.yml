@@ -46,6 +46,21 @@ jobs:
           }' robot/rebar.config
           cat robot/rebar.config
 
+      - uses: actions/cache@v4
+        env:
+          cache-name: rebar3
+        with:
+          path: |
+            ~/.cache/rebar3
+            _build
+          key: ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}-${{hashFiles('rebar.lock')}}
+          restore-keys: |
+            ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}
+            ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}
+
+      - name: Compile
+        run: rebar3 do clean, compile
+
       - name: Try to Deploy
         id: deploy
         continue-on-error: true
@@ -63,18 +78,3 @@ jobs:
             https://api.github.com/repos/grisp/rebar3_grisp/issues \
             -d "{\"title\":\"Deploy test failed for OTP-${{ matrix.otp }}\",\"body\":\"OTP Version: ${{ matrix.otp }}\nWorkflow: https://github.com/grisp/rebar3_grisp/actions/runs/${{ github.run_id }}\",\"labels\":[\"bug\"]}"
             exit 1
-
-      - uses: actions/cache@v4
-        env:
-          cache-name: rebar3
-        with:
-          path: |
-            ~/.cache/rebar3
-            _build
-          key: ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}-${{hashFiles('rebar.lock')}}
-          restore-keys: |
-            ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}
-            ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}
-
-      - name: Compile
-        run: rebar3 do clean, compile
