@@ -13,6 +13,7 @@ jobs:
       matrix:
         otp: ['26', '27']
         rebar3: ['3']
+        deps: ['grisp']
         # latest rebar3 versions that do not give problems with selected OTPs
         include:
           - otp: '24'
