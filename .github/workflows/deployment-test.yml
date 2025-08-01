@@ -41,14 +41,26 @@ jobs:
         uses: actions/checkout@v4
         with:
             path: robot/_checkouts
+      - name: Build OTP
+        id: build
+        working-directory: robot
+        continue-on-error: true
+        run: |
+          sed -i '/{grisp, \[/a\
+          '"{build, [{toolchain, [{directory, \"/grisp2-rtems-toolchain\"}]}]}," rebar.config
+          cat rebar.config
+          rebar3 grisp build --tar
+          PKG_NAME=$(ls _grisp/grisp2/otp/${{matrix.otp}}/package)
+          echo "pkg_name=$PKG_NAME" >> $GITHUB_ENV
       - name: Try to Deploy
         id: deploy
+        if: ${{ steps.build.outcome == 'success' }}
         continue-on-error: true
         working-directory: robot
         run: |
           rebar3 grisp deploy
       - name: Create GitHub Issue on Failure
-        if: ${{steps.deploy.outcome == 'failure' }}
+        if: ${{steps.build.outcome == 'failure' || steps.deploy.outcome == 'failure' }}
         run: |
             curl -L -X POST \
             -H "Accept: application/vnd.github+json" \
