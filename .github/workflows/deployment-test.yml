@@ -21,9 +21,6 @@ jobs:
           - otp: '25'
             rebar3: '3.24.0'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          path: robot/_checkouts
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp }}
@@ -44,6 +41,10 @@ jobs:
           s/{deps, \[\n[[:space:]]*grisp\n\]}.*/{deps, [${{ matrix.deps }}]}./
           }' robot/rebar.config
           cat robot/rebar.config
+      - name: Checkout repository into robot/_checkouts
+        uses: actions/checkout@v4
+        with:
+            path: robot/_checkouts
       - name: Try to Deploy
         id: deploy
         continue-on-error: true
