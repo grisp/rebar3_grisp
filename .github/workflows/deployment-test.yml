@@ -16,6 +16,13 @@ jobs:
             - { otp: '26.2.5', rebar3: '3', deps: 'grisp' }
             - { otp: '24.3.4.2', rebar3: '3.23.0', deps: 'grisp' }
             - { otp: '25.2.3', rebar3: '3.24.0', deps: 'grisp' }
+    container:
+      # This image is based on debian:bookworm
+      # but we need to make  erlef/setup-beam@v1 happy
+      # so we set 'ubuntu22' (jammy), which is the most similar, as ImageOS
+      image: grisp/grisp2-rtems-toolchain
+      env:
+        ImageOS: 'ubuntu22'
     steps:
       - uses: erlef/setup-beam@v1
         with:
