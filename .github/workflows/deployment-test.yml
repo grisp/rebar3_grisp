@@ -16,7 +16,7 @@ jobs:
         deps: ['grisp']
         # latest rebar3 versions that do not give problems with selected OTPs
         include:
-          - otp: '24.0'
+          - otp: '24.2'
             rebar3: '3.23.0'
           - otp: '25.0'
             rebar3: '3.24.0'
