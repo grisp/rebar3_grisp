@@ -11,14 +11,14 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
-        otp: ['26', '27']
+        otp: ['26.0', '27.0']
         rebar3: ['3']
         deps: ['grisp']
         # latest rebar3 versions that do not give problems with selected OTPs
         include:
-          - otp: '24'
+          - otp: '24.0'
             rebar3: '3.23.0'
-          - otp: '25'
+          - otp: '25.0'
             rebar3: '3.24.0'
     steps:
       - uses: erlef/setup-beam@v1
