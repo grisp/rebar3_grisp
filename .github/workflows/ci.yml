@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-24.04
     name: Erlang ${{matrix.otp}} / rebar ${{matrix.rebar3}}
     strategy:
+      fail-fast: false
       matrix:
         otp: ['26', '27','28']
         rebar3: ['3']
