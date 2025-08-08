@@ -22,10 +22,6 @@ jobs:
             rebar3: '3.24.0'
     steps:
 
-      - uses: actions/checkout@v4
-        with:
-          path: _checkouts
-
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
