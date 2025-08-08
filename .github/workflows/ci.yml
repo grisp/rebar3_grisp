@@ -19,6 +19,10 @@ jobs:
         include:
           - otp: '25'
             rebar3: '3.24.0'
+            deps: 'grisp'
+          - otp: '25'
+            rebar3: '3.24.0'
+            deps: 'grisp, grisp_cryptoauth'
     steps:
       - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
