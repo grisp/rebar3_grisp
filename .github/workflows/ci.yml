@@ -39,7 +39,7 @@ jobs:
 
       - name: Generate Dummy Project
         run: |
-          rebar3 grisp configure -i false --otp_version="=${{ matrix.otp }}" --dest="_deploy"
+          rebar3 grisp configure -i false --otp_version="${{ matrix.otp }}" --dest="_deploy"
           mkdir robot/_deploy
           sed -i 's/grisp/${{ matrix.deps }}/g' robot/src/robot.app.src
           sed -i '/{deps, \[/,/\]}.*/{
