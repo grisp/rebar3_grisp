@@ -13,7 +13,7 @@ jobs:
       matrix:
         otp: ['26', '27']
         rebar3: ['3']
-        deps: ['grisp']
+        deps: ['grisp', 'grisp, grisp_cryptoauth']
         # latest rebar3 versions that do not give problems with selected OTPs
         include:
           - otp: '24'
@@ -21,7 +21,7 @@ jobs:
           - otp: '25'
             rebar3: '3.24.0'
     steps:
-
+      - uses: actions/checkout@v4
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{matrix.otp}}
@@ -39,5 +39,35 @@ jobs:
             ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}-rebar_${{matrix.rebar3}}
             ci-${{runner.os}}-${{env.cache-name}}-otp_${{matrix.otp}}
 
-      - name: Compile
+      
+      - name: Test Compile
         run: rebar3 do clean, compile
+
+      - name: Install GRiSP Plugin
+        run: |
+          mkdir -p ${HOME}/.config/rebar3/
+          echo "{plugins, [rebar3_hex,rebar3_grisp]}." > ${HOME}/.config/rebar3/rebar.config
+          rebar3 update
+
+      - name: Generate Dummy Project
+        run: |
+          rebar3 grisp configure -i false --dest="_deploy"
+          mkdir robot/_deploy
+          sed -i 's/grisp/${{ matrix.deps }}/g' robot/src/robot.app.src
+          sed -i '/{deps, \[/,/\]}.*/{
+          N
+          N
+          s/{deps, \[\n[[:space:]]*grisp\n\]}.*/{deps, [${{ matrix.deps }}]}./
+          }' robot/rebar.config
+          cat robot/rebar.config
+
+      - name: Checkout repository into robot/_checkouts
+        uses: actions/checkout@v4
+        with:
+            path: robot/_checkouts
+
+      - name: Try to Deploy
+        id: deploy
+        working-directory: robot
+        run: |
+          rebar3 grisp deploy
