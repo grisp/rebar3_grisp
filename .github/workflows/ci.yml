@@ -8,7 +8,7 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-24.04
-    name: Erlang ${{matrix.otp}} / rebar ${{matrix.rebar3}}
+    name: Erlang ${{matrix.otp}} / rebar ${{matrix.rebar3}} / deps ${{matrix.deps}}
     strategy:
       fail-fast: false
       matrix:
