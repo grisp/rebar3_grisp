@@ -61,7 +61,7 @@ jobs:
       - name: Checkout repository into robot/_checkouts
         uses: actions/checkout@v4
         with:
-            path: robot/_checkouts
+            path: robot/_checkouts/rebar3_grisp
       - name: Print version
         working-directory: robot
         run: |
