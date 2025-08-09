@@ -62,7 +62,9 @@ jobs:
         uses: actions/checkout@v4
         with:
             path: robot/_checkouts
-
+      - name: Print version
+        run: |
+          rebar3 grisp version  
       - name: Try to Deploy
         id: deploy
         working-directory: robot
