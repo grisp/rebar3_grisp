@@ -63,6 +63,7 @@ jobs:
         with:
             path: robot/_checkouts
       - name: Print version
+        working-directory: robot
         run: |
           rebar3 grisp version  
       - name: Try to Deploy
