@@ -89,7 +89,7 @@ do(RState) ->
                 copy_dist_spec(RState2, CopyDest, Force)
             ]
         end,
-        Profiles = [P || P <- rebar_state:current_profiles(RState),
+        Profiles = [P || P <- rebar_state:current_profiles(RState2),
                          P =/= default, P =/= grisp, P =/= test],
         DeploySpec = #{
             project_root => ProjectRoot,
@@ -111,7 +111,7 @@ do(RState) ->
                     version => RelVsn
                 }},
                 shell => {fun rebar3_grisp_handler:shell/3, #{}},
-                release => {fun release_handler/2, RState}
+                release => {fun release_handler/2, RState2}
             }),
             scripts => #{
                 pre_script => PreScript,
