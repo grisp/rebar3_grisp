@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.2] - 2026-01-15
+
+### Fixed
+
+- Fix bug in which an outdated Rebar state was passed to the release handler, this caused failures when using semver in checkouts dependencies
+
+### Changed
+
+- Use semver for versioning the plugin
+- Improved CI/CD workflow to test building and deployment on plugin changes [#106](https://github.com/grisp/rebar3_grisp/pull/106)
+
 ## [2.10.1] - 2025-07-22
 
 ### Fixed
@@ -388,7 +399,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.10.1...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.10.2...HEAD
+[2.10.2]: https://github.com/grisp/rebar3_grisp/compare/2.10.1...2.10.2
 [2.10.1]: https://github.com/grisp/rebar3_grisp/compare/2.10.0...2.10.1
 [2.10.0]: https://github.com/grisp/rebar3_grisp/compare/2.9.0...2.10.0
 [2.9.0]: https://github.com/grisp/rebar3_grisp/compare/2.8.0...2.9.0
