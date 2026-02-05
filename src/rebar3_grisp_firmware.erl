@@ -41,7 +41,7 @@ init(State) ->
                 {image, $i, "image", {boolean, false}, "Generate an eMMC image firmware under _grisp/firmware"},
                 {bootloader, $b, "bootloader", {boolean, false}, "Generate a bootloader firmware under _grisp/firmware"},
                 {truncate, $t, "truncate", {boolean, true}, "Truncate the generated image firmware to contain only the first partition"},
-                {quiet, $q, "quiet", {boolean, false}, "Do not show the instructions on how to burn the firmwares"} 
+                {quiet, $q, "quiet", {boolean, false}, "Do not show the instructions on how to burn the firmwares"}
             ]},
             {profiles, [grisp]},
             {short_desc, "Generate GRiSP firmware image files"},
@@ -181,8 +181,7 @@ deploy_bundle(RState, Refresh, RelName, RelVsn, ExtraRelArgs) ->
         "deploy",
         "--tar",
         "--relname", atom_to_list(RelName),
-        "--relvsn", RelVsn,
-        "--destination", ""
+        "--relvsn", RelVsn
     ] ++ case Refresh =:= true of
         true -> ["--force"];
         false -> []
