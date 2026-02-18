@@ -100,7 +100,6 @@ do(RState) ->
                 name => RelName,
                 version => RelVsn,
                 profiles => Profiles,
-                tar => Tar,
                 force => Force
             },
             handlers => grisp_tools:handlers_init(#{
