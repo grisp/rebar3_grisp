@@ -33,7 +33,7 @@ init(State) ->
             {opts, [
                 {relname, $n, "relname", string, "Specify the name for the release that will be deployed"},
                 {relvsn, $v, "relvsn", string, "Specify the version of the release"},
-                {tar, $t, "tar", {boolean, false}, "Create tarball with the release in _grisp/deploy"},
+                {tar, $t, "tar", {boolean, false}, "Create a tarball with the release in _grisp/deploy, instead of deployng to 'destination'"},
                 {destination, $d, "destination", string, "Path to put deployed release in"},
                 {force, $f, "force", {boolean, false}, "Replace existing files"},
                 {pre_script, undefined, "pre-script", string, "Shell script to run before deploying begins"},
