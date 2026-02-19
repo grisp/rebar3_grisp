@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+-  `rebar3 grisp deploy --tar` will not copy the release to the configured destination and will not execute `pre` and `post` scripts, usually defined in the `rebar.config` file.
+
+- the option `--destination` is ignored when using option `--tar`
+
+### Fixed
+
+- `rebar3 grisp firmware` command failure with latest rebar versions
+
 ## [2.10.2] - 2026-01-15
 
 ### Fixed
