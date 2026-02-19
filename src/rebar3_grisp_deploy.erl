@@ -80,11 +80,11 @@ do(RState) ->
                 bundle_dist_spec(RState2, RelName, RelVsn, Force)
             ];
             {false, _} -> [
-                copy_dist_spec(RState2, CopyDest, Force)
+                copy_dist_spec(RState2, Force)
             ];
             {true, _} -> [
                 bundle_dist_spec(RState2, RelName, RelVsn, Force),
-                copy_dist_spec(RState2, CopyDest, Force)
+                copy_dist_spec(RState2, Force)
             ]
         end,
         Profiles = [P || P <- rebar_state:current_profiles(RState2),
@@ -99,8 +99,7 @@ do(RState) ->
             release => #{
                 name => RelName,
                 version => RelVsn,
-                profiles => Profiles,
-                force => Force
+                profiles => Profiles
             },
             handlers => grisp_tools:handlers_init(#{
                 event => {fun event_handler/2, #{
@@ -228,7 +227,8 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 
-copy_dist_spec(RState, CopyDest, Force) ->
+copy_dist_spec(RState, Force) ->
+    CopyDest = get_option(destination, [deploy, destination], RState, undefined),
     PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
     PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
     {copy, #{
