@@ -57,6 +57,8 @@ do(RState) ->
     OTPVersion = rebar3_grisp_util:otp_version(Config),
     Board = rebar3_grisp_util:platform(Config),
     CopyDest = get_option(destination, [deploy, destination], RState, undefined),
+    PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
+    PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
     {Args, _} = rebar_state:command_parsed_args(RState),
     Force = proplists:get_value(force, Args, false),
     Tar = proplists:get_value(tar, Args, false),
@@ -73,20 +75,15 @@ do(RState) ->
     try
         {RelName, RelVsn}
             = rebar3_grisp_util:select_release(RState2, RelNameArg, RelVsnArg),
-        DistSpec = case {Tar, CopyDest}  of
-            {false, D} when D =:= undefined; D =:= "" ->
-                error(no_deploy_destination);
-            {true, D}  when D =:= undefined; D =:= "" -> [
-                bundle_dist_spec(RState2, RelName, RelVsn, Force)
-            ];
-            {false, _} -> [
-                copy_dist_spec(RState2, Force)
-            ];
-            {true, _} -> [
-                bundle_dist_spec(RState2, RelName, RelVsn, Force),
-                copy_dist_spec(RState2, Force)
-            ]
-        end,
+        DistOptions = #{
+            destination => CopyDest,
+            pre_script => PreScript,
+            post_script => PostScript,
+            tar => Tar,
+            force => Force,
+            bundle =>
+                rebar3_grisp_util:bundle_file_path(RState, RelName, RelVsn)
+        },
         Profiles = [P || P <- rebar_state:current_profiles(RState2),
                          P =/= default, P =/= grisp, P =/= test],
         DeploySpec = #{
@@ -95,7 +92,7 @@ do(RState) ->
             otp_version_requirement => OTPVersion,
             platform => Board,
             custom_build => CustomBuild,
-            distribute => DistSpec,
+            distribute => distribution_spec(DistOptions),
             release => #{
                 name => RelName,
                 version => RelVsn,
@@ -227,10 +224,17 @@ format_error(Reason) ->
 
 %--- Internal ------------------------------------------------------------------
 
-copy_dist_spec(RState, Force) ->
-    CopyDest = get_option(destination, [deploy, destination], RState, undefined),
-    PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
-    PostScript = get_option(pre_script, [deploy, post_script], RState, undefined),
+distribution_spec(#{tar := true} = DistOptions) ->
+    [bundle_dist_spec(DistOptions)];
+distribution_spec(#{tar := false} = DistOptions) ->
+    [copy_dist_spec(DistOptions)].
+
+copy_dist_spec(#{destination := undefined}) ->
+    error(no_deploy_destination);
+copy_dist_spec(#{destination := CopyDest,
+                 pre_script := PreScript,
+                 post_script := PostScript,
+                 force := Force}) ->
     {copy, #{
         type => copy,
         force => Force,
@@ -241,8 +245,7 @@ copy_dist_spec(RState, Force) ->
         }
     }}.
 
-bundle_dist_spec(RState, RelName, RelVsn, Force) ->
-    BundleFile = rebar3_grisp_util:bundle_file_path(RState, RelName, RelVsn),
+bundle_dist_spec(#{bundle := BundleFile, force := Force}) ->
     {bundle, #{
         type => archive,
         force => Force,
