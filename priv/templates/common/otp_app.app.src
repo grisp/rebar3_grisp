@@ -6,7 +6,10 @@
     {applications, [
         kernel,
         stdlib,
-        {{^grisp_io}}grisp{{/grisp_io}}{{#grisp_io}}grisp_connect{{/grisp_io}}
+        grisp{{#grisp_io}},
+        certifi,
+        grisp_cryptoauth,
+        grisp_connect{{/grisp_io}}
     ]},
     {env,[]},
     {modules, []},
