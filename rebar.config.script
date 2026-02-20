@@ -16,6 +16,9 @@ end.
 
 case OTPVersion of
     V when V < 27 ->
+        rebar_api:warn("You are running rebar3_grisp with Erlang/OTP-~p!~n"
+                       "rebar3_grisp deprecates this OTP version and will drop support for it in the next releases!~n"
+                       "Please upgrade to OTP 27 or newer before upgrading this plugin!",[OTPVersion]),
         NewOverrrides = {overrides, [EdifaOverride | Overrides]},
         lists:keystore(overrides, 1, CONFIG, NewOverrrides);
     _ ->

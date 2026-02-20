@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - the option `--destination` is ignored when using option `--tar`
 
+- Erlang/OTP-26 and older versions are now deprecated. A warning message will be print to inform trhe user.
+
 ### Fixed
 
 - `rebar3 grisp firmware` command failure with latest rebar versions
