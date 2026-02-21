@@ -7,13 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-02-21
+
 ### Changed
 
 -  `rebar3 grisp deploy --tar` will not copy the release to the configured destination and will not execute `pre` and `post` scripts, usually defined in the `rebar.config` file.
 
 - the option `--destination` is ignored when using option `--tar`
 
-- Erlang/OTP-26 and older versions are now deprecated. A warning message will be print to inform trhe user.
+- Erlang/OTP-26 and older versions are now deprecated. A warning message will be print to inform the user.
 
 ### Fixed
 
@@ -411,7 +413,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.10.2...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.11.0...HEAD
+[2.11.0]: https://github.com/grisp/rebar3_grisp/compare/2.10.2...2.11.0
 [2.10.2]: https://github.com/grisp/rebar3_grisp/compare/2.10.1...2.10.2
 [2.10.1]: https://github.com/grisp/rebar3_grisp/compare/2.10.0...2.10.1
 [2.10.0]: https://github.com/grisp/rebar3_grisp/compare/2.9.0...2.10.0
