@@ -32,12 +32,8 @@ jobs:
         run: |
           rebar3 grisp configure -i false --otp_version="${{ matrix.otp }}" --dest="_deploy"
           mkdir robot/_deploy
-          sed -i 's/grisp/${{ matrix.deps }}/g' robot/src/robot.app.src
-          sed -i '/{deps, \[/,/\]}.*/{
-          N
-          N
-          s/{deps, \[\n[[:space:]]*grisp\n\]}.*/{deps, [${{ matrix.deps }}]}./
-          }' robot/rebar.config
+          sed -i '/{applications, \[/,/\]}.*/ s/^\([[:space:]]*\)grisp[[:space:]]*$/\1${{ matrix.deps }}/' robot/src/robot.app.src
+          sed -i '/{deps, \[/,/\]}.*/ s/^\([[:space:]]*\)grisp[[:space:]]*$/\1${{ matrix.deps }}/' robot/rebar.config
           cat robot/rebar.config
       - name: Checkout repository into robot/_checkouts
         uses: actions/checkout@v4
