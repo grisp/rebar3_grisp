@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.12.1] - 2026-07-31
+
+### Fixed
+
+- Hotfix for template resolution bug https://github.com/grisp/grisp_tools/pull/47
+
 ## [2.12.0] - 2026-07-29
 
 ### Changed
@@ -421,7 +428,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.12.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.12.1...HEAD
+[2.12.1]: https://github.com/grisp/rebar3_grisp/compare/2.12.0...2.12.1
 [2.12.0]: https://github.com/grisp/rebar3_grisp/compare/2.11.0...2.12.0
 [2.11.0]: https://github.com/grisp/rebar3_grisp/compare/2.10.2...2.11.0
 [2.10.2]: https://github.com/grisp/rebar3_grisp/compare/2.10.1...2.10.2
