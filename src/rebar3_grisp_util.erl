@@ -22,6 +22,7 @@
 -export([root/1]).
 -export([config/1]).
 -export([otp_version/1]).
+-export([otp_jit/1]).
 -export([platform/1]).
 -export([otp_build_root/2]).
 -export([otp_cache_file_name/2]).
@@ -107,6 +108,9 @@ config(State) ->
 
 otp_version(Config) ->
     get([otp, version], Config, ?DEFAULT_OTP_VSN).
+
+otp_jit(Config) ->
+    get([otp, jit], Config, false).
 
 platform(Config) ->
     try
