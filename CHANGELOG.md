@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-08-24
+
+### Added
+
+- Add support for the `jit` config key [#112](https://github.com/grisp/rebar3_grisp/pull/112)
 
 ## [2.12.1] - 2026-07-31
 
@@ -428,7 +433,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.12.1...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.13.0...HEAD
+[2.13.0]: https://github.com/grisp/rebar3_grisp/compare/2.12.1...2.13.0
 [2.12.1]: https://github.com/grisp/rebar3_grisp/compare/2.12.0...2.12.1
 [2.12.0]: https://github.com/grisp/rebar3_grisp/compare/2.11.0...2.12.0
 [2.11.0]: https://github.com/grisp/rebar3_grisp/compare/2.10.2...2.11.0
