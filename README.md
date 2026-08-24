@@ -490,8 +490,10 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 
 ```erlang
 {grisp, [
-    {otp, [{version, "25"}]},
-    {jit, true}, % applies jit patches if available, enabling the jit
+    {otp, [
+        {version, "27"},
+        {jit, true} % applies jit patches if available, enabling the jit
+    ]},
     {build, [
         {toolchain, [
             {directory, "/PATH/TO/grisp2-rtems-toolchain/rtems/VERSION/"}
