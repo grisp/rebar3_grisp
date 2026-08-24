@@ -491,7 +491,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 ```erlang
 {grisp, [
     {otp, [
-        {version, "25"},
+        {version, "27"},
         {jit, true} % applies jit patches if available, enabling the jit
     ]},
     {build, [
