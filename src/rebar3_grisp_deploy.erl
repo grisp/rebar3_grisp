@@ -55,6 +55,7 @@ init(State) ->
 do(RState) ->
     Config = rebar3_grisp_util:config(RState),
     OTPVersion = rebar3_grisp_util:otp_version(Config),
+    Jit = rebar3_grisp_util:otp_jit(Config),
     Board = rebar3_grisp_util:platform(Config),
     CopyDest = get_option(destination, [deploy, destination], RState, undefined),
     PreScript = get_option(pre_script, [deploy, pre_script], RState, undefined),
@@ -90,6 +91,7 @@ do(RState) ->
             project_root => ProjectRoot,
             apps => Apps,
             otp_version_requirement => OTPVersion,
+            jit => Jit,
             platform => Board,
             custom_build => CustomBuild,
             distribute => distribution_spec(DistOptions),

@@ -44,6 +44,7 @@ do(RState) ->
     CustomBuild = rebar3_grisp_util:should_build(Config),
     Board = rebar3_grisp_util:platform(Config),
     Version = rebar3_grisp_util:otp_version(Config),
+    Jit = rebar3_grisp_util:otp_jit(Config),
 
     Apps = rebar3_grisp_util:apps(RState),
 
@@ -63,6 +64,7 @@ do(RState) ->
             flags => Flags,
             apps => Apps,
             otp_version_requirement => Version,
+            jit => Jit,
             custom_build => CustomBuild,
             platform => Board,
             handlers => grisp_tools:handlers_init(#{
