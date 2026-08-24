@@ -19,6 +19,8 @@ rebar3 help grisp [<task>]
   - [Generate GRiSP 2 Firmwares](#generate-grisp-2-firmwares)
     - [Firmware Update](#firmware-update)
     - [Cautions](#cautions)
+      - [With truncated image firmwares](#with-truncated-image-firmwares)
+      - [With writing system firmware on inactive system partition](#with-writing-system-firmware-on-inactive-system-partition)
   - [Build a Software Update Package](#build-a-software-update-package)
     - [Updating a GRiSP Board](#updating-a-grisp-board)
   - [Listing Packages](#listing-packages)
@@ -489,6 +491,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 ```erlang
 {grisp, [
     {otp, [{version, "25"}]},
+    {jit, true}, % applies jit patches if available, enabling the jit
     {build, [
         {toolchain, [
             {directory, "/PATH/TO/grisp2-rtems-toolchain/rtems/VERSION/"}
