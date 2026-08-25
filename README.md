@@ -112,6 +112,9 @@ The specific variables provided by this plugin are:
   your SD card is mounted (e.g. on macOS it is `/Volumes/<NAME>` where `<NAME>`
   is the name of the SD card partition)
 * **`otp_version`** is the target Erlang/OTP version used on the GRiSP board
+* **`jit`** specifies whether available Arm32 JIT patches are included when
+  building Erlang/OTP. It defaults to `true`; use `--jit false` (or `-j false`)
+  to disable them
 * **`network`** specifies if the project contains network configuration files
 * **`wifi`** specifies if the project contains Wi-Fi configuration files. (requires `network`)
 * **`ssid`** is the SSID of the Wi-Fi network you want your board to connect to. (requires `network` and `wifi`)
@@ -492,7 +495,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
 {grisp, [
     {otp, [
         {version, "27"},
-        {jit, true} % applies jit patches if available, enabling the jit
+        {jit, true} % Apply JIT patches when available
     ]},
     {build, [
         {toolchain, [
