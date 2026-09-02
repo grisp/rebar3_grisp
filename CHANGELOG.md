@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-09-02
+
+### Changed
+
+- Upgrade `grisp_tools` to 2.11.0.
+
 ## [2.13.1] - 2026-08-25
 
 ### Added
@@ -439,7 +445,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.13.1...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.14.0...HEAD
+[2.14.0]: https://github.com/grisp/rebar3_grisp/compare/2.13.1...2.14.0
 [2.13.1]: https://github.com/grisp/rebar3_grisp/compare/2.13.0...2.13.1
 [2.13.0]: https://github.com/grisp/rebar3_grisp/compare/2.12.1...2.13.0
 [2.12.1]: https://github.com/grisp/rebar3_grisp/compare/2.12.0...2.12.1
