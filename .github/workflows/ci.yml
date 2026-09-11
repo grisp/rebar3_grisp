@@ -44,3 +44,30 @@ jobs:
         working-directory: robot
         run: |
           rebar3 grisp deploy
+      - name: Test Version Task
+        working-directory: robot
+        run: rebar3 grisp version
+      - name: Test Package Task
+        working-directory: robot
+        run: rebar3 grisp package list --cached
+      - name: Test Report Task
+        working-directory: robot
+        run: |
+          rebar3 grisp report --tar
+          test -f _grisp/report/rebar.config
+          test -f _grisp/report/rebar.lock
+          compgen -G '_grisp/grisp-report_*.tar.gz'
+      - name: Install Firmware Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes fusefat
+      - name: Test Firmware Task
+        working-directory: robot
+        run: |
+          rebar3 grisp firmware --quiet
+          compgen -G '_grisp/firmware/*.sys.gz'
+      - name: Test Pack Task
+        working-directory: robot
+        run: |
+          rebar3 grisp pack --quiet
+          compgen -G '_grisp/update/*.tar'
