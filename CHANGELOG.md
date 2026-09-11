@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.1] - 2026-09-11
+
+### Changed
+
+- Upgrade `grisp_tools` to 2.11.3.
+
+### Fixed
+
+- Prevent cached package listings from crashing when remote-only metadata is
+  unavailable.
+- Improve dependency resolution and Erlang/OTP 29 compatibility by declaring
+  required Rebar libraries directly instead of compiling Rebar as a project
+  plugin.
+
 ## [2.14.0] - 2026-09-02
 
 ### Changed
@@ -445,7 +459,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.14.0...HEAD
+[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.14.1...HEAD
+[2.14.1]: https://github.com/grisp/rebar3_grisp/compare/2.14.0...2.14.1
 [2.14.0]: https://github.com/grisp/rebar3_grisp/compare/2.13.1...2.14.0
 [2.13.1]: https://github.com/grisp/rebar3_grisp/compare/2.13.0...2.13.1
 [2.13.0]: https://github.com/grisp/rebar3_grisp/compare/2.12.1...2.13.0
