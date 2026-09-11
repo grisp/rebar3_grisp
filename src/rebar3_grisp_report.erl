@@ -61,6 +61,7 @@ do(RState) ->
         State = grisp_tools:report(#{
             project_root => ProjectRoot,
             report_dir => ReportDir,
+            project_settings => ["rebar.config", "rebar.lock"],
             flags => Flags,
             apps => Apps,
             otp_version_requirement => Version,
