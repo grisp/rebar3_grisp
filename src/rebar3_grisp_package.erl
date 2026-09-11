@@ -139,16 +139,21 @@ to_atom(Term) when is_atom(Term) -> Term;
 to_atom(Term) when is_list(Term) -> list_to_atom(Term).
 
 format(Files) ->
-    lists:map(fun(#{last_modified := Modified, size := Size} = F) ->
-        F#{
-            last_modified => format_datetime(Modified),
-            size => format_size(Size),
-            latest => case maps:get(latest, F, false) of
+    lists:map(fun format_file/1, Files).
+
+format_file(File0) ->
+    File1 = format_optional(last_modified, fun format_datetime/1, File0),
+    File2 = format_optional(size, fun format_size/1, File1),
+    File2#{latest => case maps:get(latest, File2, false) of
                         true -> "true";
                         false -> ""
-                      end
-        }
-    end, Files).
+                     end}.
+
+format_optional(Key, Formatter, Map) ->
+    case maps:find(Key, Map) of
+        {ok, Value} -> Map#{Key => Formatter(Value)};
+        error -> Map
+    end.
 
 table([], _Columns) ->
     warn("No packages found");
