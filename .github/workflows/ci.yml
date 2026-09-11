@@ -57,7 +57,11 @@ jobs:
         run: |
           rebar3 grisp report --tar
           test -f _grisp/report/rebar.config
-          test -f _grisp/report/rebar.lock
+          if test -f rebar.lock; then
+            cmp rebar.lock _grisp/report/rebar.lock
+          else
+            test ! -e _grisp/report/rebar.lock
+          fi
           compgen -G '_grisp/grisp-report_*.tar.gz'
       - name: Install Firmware Tools
         run: |
