@@ -9,6 +9,8 @@ jobs:
   ci:
     runs-on: ubuntu-24.04
     name: Erlang ${{matrix.otp}} / rebar ${{matrix.rebar3}} / deps ${{matrix.deps}}
+    env:
+      DIAGNOSTIC: 1
     strategy:
       fail-fast: false
       matrix:
