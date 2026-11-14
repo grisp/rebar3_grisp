@@ -286,7 +286,7 @@ event([pack, package, _, {expanding, Filename}]) ->
 event([pack, package, create_image]) ->
     console("* Creating temporary disk image...");
 event([pack, package, create_image, {error, Reason}]) ->
-    abort_message("Failed to create temporary disk image: ~s", Reason);
+    abort_message("Failed to create temporary disk image", Reason);
 event([pack, package, create_partitions]) ->
     console("* Creating disk partition table...");
 event([pack, package, create_partitions, {error, Reason}]) ->
@@ -348,6 +348,7 @@ stream_tag(stdin) -> "<<";
 stream_tag(stdout) -> "1>";
 stream_tag(stderr) -> "2>".
 
+-spec abort_message(string(), term()) -> no_return().
 abort_message(Prefix, Msg) when is_binary(Msg) ->
     abort("~s; ~s", [Prefix, Msg]);
 abort_message(Prefix, Reason) ->

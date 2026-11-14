@@ -18,3 +18,7 @@ rebar3.crashdump
 
 # GRiSP
 _grisp
+{{#rust}}
+native/target/
+priv/crates/
+{{/rust}}
