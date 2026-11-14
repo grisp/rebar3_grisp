@@ -56,7 +56,9 @@ apps(RebarState) ->
         Name = binary_to_atom(rebar_app_info:name(App), utf8),
         {Name, #{
             dir => rebar_app_info:dir(App),
-            deps => proplists:get_value(applications, rebar_app_info:app_details(App), [])
+            deps => proplists:get_value(applications, rebar_app_info:app_details(App), []),
+            native_nifs => [N || N <- rebar_state:get(RebarState, grisp_native_nifs, []),
+                                maps:get(app, N) =:= Name]
         }}
     end, Apps).
 
@@ -75,7 +77,9 @@ warn(Msg, Args) -> rebar_api:warn(Msg, Args).
 error(Msg) -> ?MODULE:error(Msg, []).
 error(Msg, Args) -> rebar_api:error(Msg, Args).
 
+-spec abort(string()) -> no_return().
 abort(Msg) -> abort(Msg, []).
+-spec abort(string(), [term()]) -> no_return().
 abort(Msg, Args) -> rebar_api:abort(Msg, Args).
 
 sh(Command) -> sh(Command, []).
@@ -256,7 +260,11 @@ toolchain_root(RebarState) ->
     Config = rebar3_grisp_util:config(RebarState),
     DockerImg = rebar3_grisp_util:get([build, toolchain, docker], Config, error),
     TCDir = rebar3_grisp_util:get([build, toolchain, directory], Config, error),
-    case os:getenv("GRISP_TOOLCHAIN", TCDir) of
+    ToolchainDir = case os:getenv("GRISP_TOOLCHAIN") of
+        false -> TCDir;
+        EnvDir -> EnvDir
+    end,
+    case ToolchainDir of
         error -> case DockerImg of
             error -> undefined;
             DockerImage ->

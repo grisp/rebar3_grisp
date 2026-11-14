@@ -1,5 +1,5 @@
 {application, {{{name}}}, [
-    {description, "{{{desc}}}"},
+    {description, {{{desc_literal}}}},
     {vsn, "0.1.0"},
     {registered, []},
     {mod, {{{{name}}}, []}},

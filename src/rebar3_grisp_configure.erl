@@ -52,8 +52,7 @@ do(RState) ->
                                          {Key, Short, Long, Type, Desc}
                                  end, providers:opts(Provider)),
         CmdArgs = rebar_state:command_args(RState),
-        {ok, {UserOpts, _}} = getopt:parse(ProviderOpts,
-                                           lists:join(" ", CmdArgs)),
+        {ok, {UserOpts, _}} = getopt:parse(ProviderOpts, CmdArgs),
         UserOptsMap = maps:from_list(UserOpts),
 
         Config = rebar3_grisp_util:config(RState),
@@ -102,15 +101,7 @@ do(RState) ->
         {ok, Cwd} = file:get_cwd(),
         PrivDir = code:priv_dir(rebar3_grisp),
         TemplatesDir = filename:join(PrivDir, "templates"),
-        FormatedFlags = maps:map(
-                          fun(_Key, Value) ->
-                             case is_list(Value) of
-                                 true ->
-                                     unicode:characters_to_binary(Value);
-                                 false ->
-                                     Value
-                             end
-                          end, Flags),
+        FormatedFlags = template_flags(Flags),
         lists:map(fun({From, To}) ->
                       FilePath = filename:join(TemplatesDir, From),
                       maybe_write_file(FilePath,
@@ -202,7 +193,32 @@ templater(#{name := Name} = Flags) ->
      {"common/otp_app.app.src", Name ++ "/src/" ++ Name ++ ".app.src"},
      {"common/sys.config", Name ++ "/config/sys.config"},
      {"common/rebar.config", Name ++ "/rebar.config"}]
-    ++ templater_network(Flags).
+    ++ templater_network(Flags)
+    ++ templater_rust(Flags)
+    ++ templater_c_nif(Flags).
+
+template_flags(Flags) ->
+    Native = maps:get(rust, Flags, false) orelse maps:get(c_nif, Flags, false),
+    Params = maps:map(fun(_, Value) when is_list(Value) -> unicode:characters_to_binary(Value);
+                        (_, Value) -> Value end, Flags#{native => Native}),
+    Params#{desc_literal => erlang_string(maps:get(desc, Params)),
+            dest_literal => erlang_string(maps:get(dest, Params))}.
+
+erlang_string(Value) ->
+    unicode:characters_to_binary(io_lib:write_string(unicode:characters_to_list(Value))).
+
+templater_c_nif(#{name := Name, c_nif := true}) ->
+    [{"c_nif/nif.erl", Name ++ "/src/" ++ Name ++ "_c_nif.erl"},
+     {"c_nif/nif.c", Name ++ "/grisp/default/common/build/nifs/" ++ Name ++ "_c_nif.c"}];
+templater_c_nif(_) -> [].
+
+templater_rust(#{name := Name, rust := true}) ->
+    [{"rust/nif.erl", Name ++ "/src/" ++ Name ++ "_rust_nif.erl"},
+     {"rust/workspace.toml", Name ++ "/native/Cargo.toml"},
+     {"rust/Cargo.toml", Name ++ "/native/" ++ Name ++ "_native/Cargo.toml"},
+     {"rust/lib.rs", Name ++ "/native/" ++ Name ++ "_native/src/lib.rs"},
+     {"rust/config.toml", Name ++ "/.cargo/config.toml"}];
+templater_rust(_) -> [].
 
 templater_network(#{name := Name, network := true} = Flags) ->
     [{"network/grisp.ini.mustache",
@@ -234,3 +250,80 @@ maybe_write_file(In, Out, Params) ->
             file:write_file(Out, FileContent);
         true -> warn("File already exists: ~p~n", [Out])
     end.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+text_templates_test() ->
+    Defaults = maps:from_list([{Key, Value} || {Key, _, {_, Value}, _} <- grisp_tools_configure:settings()]),
+    Desc = "GRiSP \"Demo\" \\ customer's " ++ [16#E9],
+    Dest = "/media/GRiSP \"card\"\\test",
+    Token = "link-token_123",
+    Flags = Defaults#{name => "text_demo", desc => Desc, dest => Dest,
+                      grisp_io => true, grisp_io_linking => true, token => Token},
+    Params = template_flags(Flags),
+    TemplateRoot = filename:join(code:priv_dir(rebar3_grisp), "templates"),
+    Root = filename:join("/tmp", "grisp-text-generator-" ++ integer_to_list(erlang:unique_integer([positive]))),
+    try
+        ok = filelib:ensure_path(Root),
+        lists:foreach(fun(File) ->
+            ok = file:write_file(filename:join(Root, File),
+                grisp_tools_template:render(filename:join([TemplateRoot, "common", File]), Params))
+        end, ["otp_app.app.src", "rebar.config", "sys.config"]),
+        {ok, [{application, text_demo, App}]} = file:consult(filename:join(Root, "otp_app.app.src")),
+        ?assertEqual(Desc, proplists:get_value(description, App)),
+        {ok, Config} = file:consult(filename:join(Root, "rebar.config")),
+        Grisp = proplists:get_value(grisp, Config),
+        ?assertEqual(Dest, proplists:get_value(destination, proplists:get_value(deploy, Grisp))),
+        {ok, [Sys]} = file:consult(filename:join(Root, "sys.config")),
+        ?assertEqual(unicode:characters_to_binary(Token),
+            proplists:get_value(device_linking_token, proplists:get_value(grisp_connect, Sys))),
+        Readme = grisp_tools_template:render(filename:join([TemplateRoot, "common", "README.md"]), Params),
+        ?assertNotEqual(nomatch, binary:match(Readme, unicode:characters_to_binary(Desc)))
+    after file:del_dir_r(Root) end.
+
+rust_templates_test() ->
+    Defaults = maps:from_list([{Key, Value} || {Key, _, {_, Value}, _} <- grisp_tools_configure:settings()]),
+    TemplateRoot = filename:join(code:priv_dir(rebar3_grisp), "templates"),
+    Root = filename:join("/tmp", "grisp-rust-generator-" ++ integer_to_list(erlang:unique_integer([positive]))),
+    try
+        lists:foreach(fun({Rust, C}) ->
+            Name = "demo_" ++ atom_to_list(Rust) ++ "_" ++ atom_to_list(C),
+            Flags = Defaults#{name => Name, rust => Rust, c_nif => C},
+            Params = template_flags(Flags),
+            lists:foreach(fun({In, Out}) ->
+                Path = filename:join(Root, Out),
+                ok = filelib:ensure_dir(Path),
+                ok = file:write_file(Path, grisp_tools_template:render(filename:join(TemplateRoot, In), Params))
+            end, templater(Flags)),
+            {ok, Config} = file:consult(filename:join([Root, Name, "rebar.config"])),
+            ?assertEqual(Rust, filelib:is_regular(filename:join([Root, Name, "native", "Cargo.toml"]))),
+            ?assertEqual(C, filelib:is_regular(filename:join([Root, Name, "grisp/default/common/build/nifs", Name ++ "_c_nif.c"]))),
+            case C of
+                true ->
+                    {ok, CSource} = file:read_file(filename:join(
+                        [Root, Name, "grisp/default/common/build/nifs", Name ++ "_c_nif.c"])),
+                    ?assertNotEqual(nomatch, binary:match(CSource,
+                        iolist_to_binary(["#define STATIC_ERLANG_NIF_LIBNAME ", Name, "_c"]))),
+                    ?assertNotEqual(nomatch, binary:match(CSource,
+                        iolist_to_binary(["ERL_NIF_INIT(", Name, "_c_nif"])));
+                false -> ok
+            end,
+            ?assertEqual(Rust orelse C, proplists:is_defined(build, proplists:get_value(grisp, Config))),
+            case Rust of
+                true ->
+                    {ok, Wrapper} = file:read_file(filename:join(
+                        [Root, Name, "src", Name ++ "_rust_nif.erl"])),
+                    ?assertNotEqual(nomatch, binary:match(Wrapper,
+                        iolist_to_binary(["-module(", Name, "_rust_nif).\n"]))),
+                    {ok, RustSource} = file:read_file(filename:join(
+                        [Root, Name, "native", Name ++ "_native", "src/lib.rs"])),
+                    ?assertNotEqual(nomatch, binary:match(RustSource,
+                        iolist_to_binary(["rustler::init!(\"", Name, "_rust_nif\");"]))),
+                    ?assertMatch([{rebar3_cargo, {git, "https://github.com/grisp/rebar3_cargo.git",
+                                                       {branch, "cross_build_support_0_1_1"}}}], proplists:get_value(plugins, Config));
+                false -> ?assertEqual(undefined, proplists:get_value(plugins, Config))
+            end
+        end, [{false, false}, {true, false}, {false, true}, {true, true}])
+    after file:del_dir_r(Root) end.
+-endif.

@@ -25,6 +25,7 @@ rebar3 help grisp [<task>]
     - [Updating a GRiSP Board](#updating-a-grisp-board)
   - [Listing Packages](#listing-packages)
   - [Build OTP for GRiSP](#build-otp-for-grisp)
+  - [Native Code](#native-code)
   - [Bug Reports](#bug-reports)
   - [Development](#development)
     - [Testing `master`](#testing-master)
@@ -115,6 +116,11 @@ The specific variables provided by this plugin are:
 * **`jit`** specifies whether available Arm32 JIT patches are included when
   building Erlang/OTP. It defaults to `true`; use `--jit false` (or `-j false`)
   to disable them
+* **`rust`** generates a Rust NIF example, the compatible Cargo plugin and
+  toolchain configuration (`--rust true`). Build with `rebar3 grisp build`
+  using a Rust-enabled SDK before deploying
+* **`c_nif`** generates a C NIF example in the build overlay and enables a
+  custom runtime build (`--c_nif true`). It can be combined with `--rust true`
 * **`network`** specifies if the project contains network configuration files
 * **`wifi`** specifies if the project contains Wi-Fi configuration files. (requires `network`)
 * **`ssid`** is the SSID of the Wi-Fi network you want your board to connect to. (requires `network` and `wifi`)
@@ -189,6 +195,9 @@ rebar3 grisp deploy --tar
         % Path to put deployed release in
         {destination, "/path/to/destination"},
 
+        % Include the beam.smp ELF for native debugging (default: false)
+        {include_debug, true},
+
         % Shell script to run before deploying begins
         {pre_script, "rm -rf /path/to/destination/*"},
 
@@ -198,6 +207,9 @@ rebar3 grisp deploy --tar
 ]}.
 ```
 
+By default, directory and tar deployments omit `beam.smp`. The ELF is available
+in the local OTP installation. Remove any previously deployed `beam.smp` from
+an existing destination to reclaim its space.
 
 ## Generate GRiSP 2 Firmwares
 
@@ -501,7 +513,7 @@ Add the path to the toolchain to the `rebar.config` under `grisp` â†’ `build` â†
         {toolchain, [
             {directory, "/PATH/TO/grisp2-rtems-toolchain/rtems/VERSION/"}
             % Or use Docker
-            {docker, "grisp/grisp2-rtems-toolchain"}
+            {docker, "grisp/grisp2-rtems-toolchain:latest"}
             % If both are specified, only 'directory' is used
         ]}
     ]},
@@ -520,11 +532,88 @@ You can create the tarballs we use for distribution on our CDN with `rebar3 gris
 The built Erlang distribution and its runtime system is located in the project
 folder, under the path `_grisp/otp/<version>/install`.
 
+## Native Code
+
+Use `rebar3 compile` and the application's native build hooks for host
+compilation and local tests. When C NIFs, Rust NIFs or other native build inputs
+change, run `rebar3 grisp build` before `rebar3 grisp deploy`. Erlang-only changes
+can be deployed directly. Deployment checks the build inputs against the
+installed OTP system and reports when a rebuild is needed.
+
+Rust NIF applications use `rebar3_cargo` and the normal Cargo compile hook:
+
+```erlang
+{plugins, [
+    rebar3_grisp,
+    {rebar3_cargo, {git, "https://github.com/grisp/rebar3_cargo.git",
+                         {branch, "cross_build_support_0_1_1"}}}
+]}.
+{cargo_opts, [{src_dir, "native/my_nif"}]}.
+{provider_hooks, [{pre, [{compile, {cargo, build}}]}]}.
+```
+
+The frontend fork supplies its compatible Erlang Cargo library dependency;
+neither belongs in the application's runtime dependencies. Rust builds validate
+both APIs and report missing support before preparing the SDK. Projects without
+Rust inputs do not need the Cargo plugin or library.
+
+The selected platform supplies the target Cargo options and symbol tool through
+its `grisp/<platform>/common/grisp.config` overlay. Install the corresponding
+Rust-enabled SDK and select it through the normal directory or Docker toolchain
+configuration. The plugin selects SDK Cargo/rustc, prebuilt target std, the
+bundler and patched dependency sources automatically. No Rust-specific GRiSP
+configuration or rustup toolchain is needed. Application Cargo options use the
+same keys as `rebar3_cargo`. Projects without Rust NIFs can continue using an SDK
+without Rust support.
+
+When multiple Rust NIF crates are discovered across the project and its Erlang
+dependencies, the plugin uses `grisp_tools` to generate a Cargo staticlib that
+links them through one Rust dependency graph. Add `rlib` alongside `cdylib` in
+each NIF's `crate-type`. Keep each application's source directory and features
+in its own `cargo_opts`; target, toolchain, environment and Rust flags must agree
+across the graph. Qualified feature selectors (`package/feature`) are currently
+rejected for aggregation. Cargo unifies dependency features in the shared graph.
+
+The bundle inherits the root application's Cargo workspace resolver, profiles
+and dependency patches. The application lockfile seeds its graph;
+its locked registry versions and Git revisions are preserved for its dependencies.
+Conflicting requirements fail with a diagnostic so dependencies and the root
+lockfile can be updated deliberately. Dependency workspaces do not override the
+application's profiles or patches, and their library lockfiles do not control
+resolution. Without an application lockfile, Cargo maintains the generated lock.
+Source manifests and lockfiles stay unchanged.
+Put shared Cargo configuration in the project's root `.cargo/config.toml`, which
+is an ancestor of the generated bundle. The SDK supplies its own patched sources.
+Generated manifests,
+lockfiles, target artifacts and the private Cargo home live under
+`_grisp/<platform>/rust/<otp-version>/`. SDK changes invalidate the target cache;
+source, feature, flag and configuration changes participate in the existing
+native build/deploy freshness checks.
+
 ## Bug Reports
 
 You can run `rebar3 grisp report` to gather info about the project configuration. The user can view and edit the generated text files. It's possible to pack them later adding `--tar` to the same command. Providing such report file can speedup debugging and support from the dev team.
 
 ## Development
+
+Run the repository checks with:
+
+```sh
+rebar3 eunit
+rebar3 as dialyzer dialyzer
+```
+
+The analysis profile supplies Rebar's debug information and the optional Cargo
+integration APIs, and checks unknown external calls and types. These analysis
+dependencies are only used when developing the plugin. Plain `rebar3 dialyzer`
+runs a lightweight check that omits unknown external API warnings because normal
+Rebar installations do not expose their debug information. CI runs the full
+analysis profile.
+
+Regenerate dependency locks in a working copy without `_checkouts` overrides
+before committing them. Rebar omits checkout dependencies from the lockfile;
+Git consumers of this plugin need its direct dependencies recorded there. CI
+checks the committed lockfile before compilation can regenerate it.
 
 To test the plugin and develop for it, we recommend checking out a specific version into a local project. You can also create a new temporary GRiSP project using this plugin. This can be useful to test deployments locally before copying them to an SD card:
 
@@ -545,7 +634,7 @@ You need to clone both _rebar3_grisp_ (this repo) and its dependency [_grisp_too
 
 ```console
 $ git clone https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
-$ git clone https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+$ git clone https://github.com/grisp/grisp_tools.git _checkouts/grisp_tools
 ```
 
 ### Testing a Specific Branch
@@ -554,7 +643,7 @@ Alternatively, clone a specific branch. Replace `$REBAR3_PLUGIN_BRANCH` with the
 
 ```console
 $ git clone --single-branch --branch $REBAR3_PLUGIN_BRANCH https://github.com/grisp/rebar3_grisp.git _checkouts/rebar3_grisp
-$ git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/rebar3_grisp
+$ git clone --single-branch --branch $GRISP_TOOLS_BRANCH https://github.com/grisp/grisp_tools.git _checkouts/grisp_tools
 ```
 
 In case you only need a specific branch of _rebar3_grisp_, you can default to using the `master` version of _grisp_tools_.

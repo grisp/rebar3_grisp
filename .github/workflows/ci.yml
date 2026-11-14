@@ -25,6 +25,10 @@ jobs:
           rebar3-version: ${{matrix.rebar3}}      
       - name: Test Compile
         run: rebar3 do clean, compile
+      - name: EUnit
+        run: rebar3 eunit
+      - name: Dialyzer
+        run: rebar3 as dialyzer dialyzer
       - name: Install GRiSP Plugin
         run: |
           mkdir -p ${HOME}/.config/rebar3/
