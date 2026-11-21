@@ -1,0 +1,10 @@
+[package]
+name = "{{{name}}}_native"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rustler = { version = "0.39.0", features = ["allocator", "nif_version_2_17"] }

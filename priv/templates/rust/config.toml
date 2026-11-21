@@ -1,0 +1,6 @@
+[profile.release]
+panic = "unwind"
+opt-level = "s"      # optimize for size, not speed
+lto = true           # whole-program dead-code elimination across crates
+codegen-units = 1    # give the optimizer a single unit to work on
+strip = "symbols"    # strip symbol tables from the final artifact

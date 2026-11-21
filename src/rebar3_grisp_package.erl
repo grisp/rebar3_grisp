@@ -179,7 +179,9 @@ format_size(Size, [_|Units]) ->
 format_datetime(DateTime) ->
     iolist_to_binary(calendar:system_time_to_rfc3339(DateTime)).
 
+-spec abort_columns(atom(), string()) -> no_return().
 abort_columns(Type, Msg) -> abort_columns(Type, Msg, []).
+-spec abort_columns(atom(), string(), [term()]) -> no_return().
 abort_columns(Type, Msg, Args) ->
     Cs = lists:join($\n, [["  ", atom_to_binary(C)] || C <- columns(Type)]),
     abort(Msg ++ "~nValid columns:~n~s", Args ++ [Cs]).
