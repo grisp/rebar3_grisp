@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.1] - 2026-11-25
+
+### Changed
+
+- Update grisp_tools lock to 2.12.1
+
+
+### Fixed
+
+- Fix release ordering and retry GitHub API failures (#120)
+
 ## [2.15.0] - 2026-11-25
 
 ### Added
@@ -481,7 +492,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[Unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.15.0...HEAD
+[Unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.15.1...HEAD
+[2.15.1]: https://github.com/grisp/rebar3_grisp/compare/2.15.0...2.15.1
 [2.15.0]: https://github.com/grisp/rebar3_grisp/compare/2.14.3...2.15.0
 [2.14.3]: https://github.com/grisp/rebar3_grisp/compare/2.14.2...2.14.3
 [2.14.2]: https://github.com/grisp/rebar3_grisp/compare/2.14.1...2.14.2
