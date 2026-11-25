@@ -24,15 +24,16 @@ The `RELEASE_GPG_KEY_PASSPHRASE` secret supplies the passphrase for a protected 
 3. Open the new **Release** run in [GitHub Actions](https://github.com/grisp/rebar3_grisp/actions/workflows/release.yml).
 4. Get the Hex approval link from the **Publish to Hex** step log.
 5. Give the link to the person who can approve the release on Hex.
-6. Wait for that person to approve the release on Hex.
-7. Make sure that GitHub shows the release for this version.
 
 The person who approves the release must complete two-factor authentication on Hex.
-The workflow creates the GitHub release after it verifies the package and documentation on Hex.
+The workflow creates the GitHub release before staging the package and documentation on Hex.
+The job ends after the upload succeeds; Hex approval can happen later.
+A successful job confirms upload, not approval or public availability on Hex.
 
 ## Continue a release
 
-If approval is pending, wait for the person to approve the release on Hex.
+If approval is pending, approve it on Hex using the link in the completed run.
+There is no need to rerun a successful job after approval.
 If the run gives an error, correct the cause.
 If the run already made the tag, select **Re-run all jobs** on the page for that run.
 Use the **Publish the Hex documentation** step log if the workflow stages only the documentation.
