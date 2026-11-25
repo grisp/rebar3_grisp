@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.0] - 2026-11-25
+
+### Added
+
+- Add a release workflow for rebar3_grisp (#119)
+
 ## [2.14.3] - 2026-10-28
 
 ### Changed
@@ -475,7 +481,8 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[Unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.14.3...HEAD
+[Unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.15.0...HEAD
+[2.15.0]: https://github.com/grisp/rebar3_grisp/compare/2.14.3...2.15.0
 [2.14.3]: https://github.com/grisp/rebar3_grisp/compare/2.14.2...2.14.3
 [2.14.2]: https://github.com/grisp/rebar3_grisp/compare/2.14.1...2.14.2
 [2.14.1]: https://github.com/grisp/rebar3_grisp/compare/2.14.0...2.14.1
