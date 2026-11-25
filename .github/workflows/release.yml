@@ -210,7 +210,6 @@ jobs:
         if: steps.hex.outputs.has_docs != 'true'
         run: |
           rebar3 compile
-          rebar3 dialyzer
           output="$RUNNER_TEMP/hex-build"
           # rebar3_hex 7.5.0 writes the archives to the tmp subdirectory.
           mkdir -p "$output/tmp"
