@@ -67,11 +67,12 @@ do(RState) ->
     RelVsnArg = proplists:get_value(relvsn, Args),
 
     ProjectRoot = rebar_dir:root_dir(RState),
-    Apps = rebar3_grisp_util:apps(RState),
 
     CustomBuild = rebar3_grisp_util:should_build(Config),
 
-    RState2 = compile_for_grisp(Config, RState),
+    NativeState = rebar3_grisp_rust:prepare(RState),
+    RState2 = compile_for_grisp(Config, NativeState),
+    Apps = rebar3_grisp_util:apps(RState2),
 
     try
         {RelName, RelVsn}
@@ -98,7 +99,8 @@ do(RState) ->
             release => #{
                 name => RelName,
                 version => RelVsn,
-                profiles => Profiles
+                profiles => Profiles,
+                include_debug => rebar3_grisp_util:get([deploy, include_debug], Config, false) =:= true
             },
             handlers => grisp_tools:handlers_init(#{
                 event => {fun event_handler/2, #{
@@ -112,8 +114,10 @@ do(RState) ->
         State = grisp_tools:deploy(DeploySpec),
         #{release := RState3} = grisp_tools:handlers_finalize(State),
         info("Deployment done"),
-        {ok, RState3}
+        {ok, rebar3_grisp_rust:restore(RState3)}
     catch
+        error:{build_inputs_stale, _Path} ->
+            abort("Native build inputs differ from the installed BEAM. Run rebar3 grisp build before deploying.");
         error:no_deploy_destination ->
             abort(
                 "No deploy destination specified~n"

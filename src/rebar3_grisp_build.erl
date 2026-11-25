@@ -36,7 +36,7 @@ init(State) ->
                     "Update OTP prebuilt preloaded modules. Enable if some preloaded modules are patched"
                 }
             ]},
-            {profiles, [default]},
+            {profiles, [grisp]},
             {short_desc, "Build a custom Erlang/OTP system for GRiSP"},
             {desc,
 "Build a custom Erlang/OTP system for GRiSP.
@@ -57,7 +57,8 @@ do(RState) ->
     Version = rebar3_grisp_util:otp_version(Config),
     Jit = rebar3_grisp_util:otp_jit(Config),
 
-    Apps = rebar3_grisp_util:apps(RState),
+    NativeState = rebar3_grisp_rust:prepare(RState),
+    Apps = rebar3_grisp_util:apps(NativeState),
 
     ProjectRoot = rebar_dir:root_dir(RState),
     ToolchainRoot = toolchain_root(RState),
@@ -93,7 +94,7 @@ do(RState) ->
         }),
         _ = grisp_tools:handlers_finalize(State),
         info("Done"),
-        {ok, RState}
+        {ok, rebar3_grisp_rust:restore(NativeState)}
     catch
         error:{missing_toolchain_revision, Source} ->
             abort(
@@ -128,6 +129,7 @@ toolchain_root(RebarState) ->
         {error, docker_not_found} -> abort("Docker is not available")
     end.
 
+-spec abort_no_toolchain() -> no_return().
 abort_no_toolchain() ->
     abort("Please specify the full path to the toolchain directory in your rebar.conf:
 
@@ -144,6 +146,7 @@ abort_no_toolchain() ->
 
 Alternatively, you can set the GRISP_TOOLCHAIN environment variable.").
 
+-spec abort_no_build() -> no_return().
 abort_no_build() ->
     abort("There was no build section found in your rebar.conf").
 
@@ -186,6 +189,10 @@ event([build, prepare, patch, {apply, #{app := App, name := File}}]) ->
     io:format("    [~p] ~s~n", [App, File]);
 event([build, prepare, patch, {skip, #{app := App, name := File}}]) ->
     io:format("    [~p] ~s (already applied, skipping)~n", [App, File]);
+event([build, prepare, copy, nifs]) ->
+    io:format("* Copying NIF sources~n");
+event([build, prepare, copy, nif_libraries]) ->
+    io:format("* Copying static NIF libraries~n");
 event([build, prepare, copy, Type]) ->
     io:format("* Copying ~p~n", [Type]);
 event([build, prepare, copy, _Type, '_skip']) ->
