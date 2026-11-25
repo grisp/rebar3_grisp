@@ -475,7 +475,7 @@ Modify release configuration dynamically
 
 * Initial release.
 
-[unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.14.3...HEAD
+[Unreleased]: https://github.com/grisp/rebar3_grisp/compare/2.14.3...HEAD
 [2.14.3]: https://github.com/grisp/rebar3_grisp/compare/2.14.2...2.14.3
 [2.14.2]: https://github.com/grisp/rebar3_grisp/compare/2.14.1...2.14.2
 [2.14.1]: https://github.com/grisp/rebar3_grisp/compare/2.14.0...2.14.1
