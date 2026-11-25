@@ -229,36 +229,36 @@ jobs:
           git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
             push --atomic origin "HEAD:refs/heads/$RELEASE_BRANCH" "refs/tags/$RELEASE_VERSION"
 
-      - name: Publish to Hex
-        if: steps.hex.outputs.exists != 'true'
-        run: rebar3 hex publish --yes --wait
-
-      - name: Publish the Hex documentation
-        if: steps.hex.outputs.exists == 'true' && steps.hex.outputs.has_docs != 'true'
-        run: rebar3 hex publish docs --yes --wait
-
-      - name: Verify the Hex release and documentation
-        run: |
-          for attempt in {1..12}; do
-            if curl --fail --silent --show-error --max-time 10 "$HEX_RELEASE_URL" |
-              jq -e --arg version "$RELEASE_VERSION" --arg run "$GITHUB_RUN_ID" \
-                '.version == $version and .has_docs == true and (.oidc_claims.run_id | tostring) == $run' > /dev/null; then
-              exit 0
-            fi
-            if [[ $attempt -lt 12 ]]; then
-              sleep 5
-            fi
-          done
-          echo "Could not verify Hex release $RELEASE_VERSION and its documentation." >&2
-          exit 1
-
       - name: Create the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$RELEASE_VERSION" > /dev/null 2>&1; then
-            exit 0
-          fi
+          set -euo pipefail
+
+          # Return 1 only for a confirmed absence, 2 for API/JSON errors, 3 for a conflict.
+          check_release() {
+            if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_VERSION" \
+                > "$RUNNER_TEMP/github-release.json" 2> "$RUNNER_TEMP/github-release-error"; then
+              if ! jq -e 'type == "object" and has("tag_name") and has("draft") and has("prerelease")' \
+                  "$RUNNER_TEMP/github-release.json" > /dev/null; then
+                echo 'GitHub returned an invalid release response.' >&2
+                return 2
+              fi
+              if ! jq -e --arg tag "$RELEASE_VERSION" \
+                  '.tag_name == $tag and .draft == false and .prerelease == false' \
+                  "$RUNNER_TEMP/github-release.json" > /dev/null; then
+                echo 'An unexpected draft, prerelease or tag exists on GitHub.' >&2
+                return 3
+              fi
+              return 0
+            fi
+            if grep -q '(HTTP 404)' "$RUNNER_TEMP/github-release-error"; then return 1; fi
+            cat "$RUNNER_TEMP/github-release-error" >&2
+            return 2
+          }
+
+          if check_release; then exit 0; else status=$?; fi
+          if (( status == 3 )); then exit 1; fi
           notes="$RUNNER_TEMP/release-notes.md"
           awk -v version="$RELEASE_VERSION" -v previous_file="$RUNNER_TEMP/previous-version" '
             /^## \[[0-9]+\.[0-9]+\.[0-9]+\] - / {
@@ -281,11 +281,49 @@ jobs:
             END { if (!done) exit 1 }
           ' CHANGELOG.md > "$notes"
           previous_version=$(cat "$RUNNER_TEMP/previous-version")
-          gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-            -f "tag_name=$RELEASE_VERSION" -f "previous_tag_name=$previous_version" \
-            --jq '.body' > "$RUNNER_TEMP/generated-notes.md"
+          for attempt in {1..5}; do
+            if gh api --method POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+                -f "tag_name=$RELEASE_VERSION" -f "previous_tag_name=$previous_version" \
+                > "$RUNNER_TEMP/generated-notes.json" &&
+                jq -er '.body | strings' "$RUNNER_TEMP/generated-notes.json" > "$RUNNER_TEMP/generated-notes.md"; then
+              break
+            fi
+            if (( attempt == 5 )); then
+              echo 'Could not generate GitHub release notes after 5 attempts.' >&2
+              exit 1
+            fi
+            echo "GitHub release notes request failed; retrying (attempt $attempt/5)." >&2
+            sleep "$((attempt * 5))"
+          done
           if grep -qE '^## New Contributors[[:space:]]*$' "$RUNNER_TEMP/generated-notes.md"; then
             printf '\n' >> "$notes"
             sed -nE '/^## New Contributors[[:space:]]*$/,$p' "$RUNNER_TEMP/generated-notes.md" >> "$notes"
           fi
-          gh release create "$RELEASE_VERSION" --title "$RELEASE_VERSION" --verify-tag --notes-file "$notes"
+          for attempt in {1..5}; do
+            # Recheck before creating: a failed response may follow a successful creation.
+            if check_release; then exit 0; else status=$?; fi
+            if (( status == 1 )); then
+              if gh release create --repo "$GITHUB_REPOSITORY" "$RELEASE_VERSION" \
+                  --title "$RELEASE_VERSION" --verify-tag --notes-file "$notes"; then
+                if check_release; then exit 0; fi
+              fi
+            elif (( status == 3 )); then
+              exit 1
+            fi
+            if (( attempt < 5 )); then
+              echo "GitHub release request failed; retrying (attempt $attempt/5)." >&2
+              sleep "$((attempt * 5))"
+            fi
+          done
+          # Also recover when the last creation succeeded but its response was lost.
+          if check_release; then exit 0; fi
+          echo "Could not confirm GitHub release $RELEASE_VERSION after 5 attempts." >&2
+          exit 1
+
+      - name: Publish to Hex
+        if: steps.hex.outputs.exists != 'true'
+        run: rebar3 hex publish --yes
+
+      - name: Publish the Hex documentation
+        if: steps.hex.outputs.exists == 'true' && steps.hex.outputs.has_docs != 'true'
+        run: rebar3 hex publish docs --yes
