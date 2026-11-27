@@ -273,6 +273,9 @@ text_templates_test() ->
         {ok, [{application, text_demo, App}]} = file:consult(filename:join(Root, "otp_app.app.src")),
         ?assertEqual(Desc, proplists:get_value(description, App)),
         {ok, Config} = file:consult(filename:join(Root, "rebar.config")),
+        ?assertEqual(">= 2.13.0", proplists:get_value(grisp, proplists:get_value(deps, Config))),
+        ?assertEqual([{rebar3_grisp, ">= 2.15.2"}, rebar3_grisp_io],
+            proplists:get_value(project_plugins, Config)),
         Grisp = proplists:get_value(grisp, Config),
         ?assertEqual(Dest, proplists:get_value(destination, proplists:get_value(deploy, Grisp))),
         {ok, [Sys]} = file:consult(filename:join(Root, "sys.config")),
@@ -297,6 +300,8 @@ rust_templates_test() ->
                 ok = file:write_file(Path, grisp_tools_template:render(filename:join(TemplateRoot, In), Params))
             end, templater(Flags)),
             {ok, Config} = file:consult(filename:join([Root, Name, "rebar.config"])),
+            ?assertEqual([{grisp, ">= 2.13.0"}], proplists:get_value(deps, Config)),
+            ?assertEqual([{rebar3_grisp, ">= 2.15.2"}], proplists:get_value(project_plugins, Config)),
             ?assertEqual(Rust, filelib:is_regular(filename:join([Root, Name, "native", "Cargo.toml"]))),
             ?assertEqual(C, filelib:is_regular(filename:join([Root, Name, "grisp/default/common/build/nifs", Name ++ "_c_nif.c"]))),
             case C of
